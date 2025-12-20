@@ -56,7 +56,8 @@ Equipment/Device Operations:
 Other Actions:
   - eat [object]                   : Eat a food item
   - flush [object]                 : Flush a toilet
-  - wait [duration]                : Take no action for some duration
+  - wait                           : Wait for 10 time steps (for slow processes)
+  - wait1                          : Wait for 1 time step (for fine control)
   - inventory                      : List agent's inventory
   - task                           : Describe current task
 
@@ -271,7 +272,7 @@ def build_user_prompt(
     parts.append("  - Type 'check valid actions' if you're unsure what to do")
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
-    parts.append("  - Use 'wait' if a process needs time to complete")
+    parts.append("  - Use 'wait' command if a process needs time to complete")
     parts.append("")
 
     # Add recent history
