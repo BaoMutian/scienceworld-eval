@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from ..memory import RetrievedMemory
 
 # Base system prompt
-_SYSTEM_PROMPT_BASE = """You are an intelligent agent operating in a virtual science laboratory environment called ScienceWorld. Your goal is to complete science experiment tasks by interacting with objects, using equipment, and applying scientific knowledge.
+_SYSTEM_PROMPT_BASE = """You are an intelligent agent operating in a virtual science laboratory environment. Your goal is to complete science experiment tasks by interacting with objects, using equipment, and applying scientific knowledge.
 
 ==================================================
 ENVIRONMENT OVERVIEW
@@ -24,36 +24,42 @@ ScienceWorld simulates a household with multiple rooms (kitchen, outside, worksh
 - Physics (inclined planes, friction)
 
 ==================================================
-AVAILABLE COMMANDS
+AVAILABLE COMMANDS (25 actions)
 ==================================================
 Navigation:
-  - look around                    : View current location and visible objects
-  - go to [location]               : Move to a location (e.g., "go to kitchen")
-  - teleport to [location]         : Instantly move to location (if enabled)
+  - look around                    : Describe the current room
+  - look at [object]               : Describe an object in detail
+  - look in [object]               : Describe a container's contents
+  - go to [location]               : Move to a new location (e.g., "go to kitchen")
+  - teleport to [location]         : Teleport to a specific room (if enabled)
 
 Object Manipulation:
-  - pick up [object]               : Pick up an object (e.g., "pick up thermometer")
-  - put down [object]              : Put down what you're holding
-  - move [object] to [location]    : Move object to location (e.g., "move pot to stove")
-  - examine [object]               : Look at object in detail
-  - focus on [object]              : Focus on a specific object (required for some tasks)
+  - pick up [object]               : Move an object to the inventory
+  - put down [object]              : Drop an inventory item
+  - move [object] to [location]    : Move an object to a container/location
+  - focus on [object]              : Signal intent on a task object
 
 Container Operations:
   - open [container]               : Open a container (e.g., "open fridge")
   - close [container]              : Close a container
-  - pour [liquid] into [container] : Pour liquid into container
+  - pour [liquid] into [container] : Pour a liquid into a container
+  - dunk [object] into [liquid]    : Dunk a container into a liquid
+  - mix [container]                : Chemically mix contents of a container
 
 Equipment/Device Operations:
-  - activate [device]              : Turn on device (e.g., "activate stove")
-  - deactivate [device]            : Turn off device
-  - use [object] on [target]       : Use object on target (e.g., "use thermometer on water")
-  - connect [obj1] to [obj2]       : Connect objects (for circuits)
+  - activate [device]              : Activate/turn on a device (e.g., "activate stove")
+  - deactivate [device]            : Deactivate/turn off a device
+  - use [object] on [target]       : Use a device/item (e.g., "use thermometer on water")
+  - connect [obj1] to [obj2]       : Connect electrical components
+  - disconnect [object]            : Disconnect electrical components
+  - read [object]                  : Read a note or book
 
-Time & Utility:
-  - wait                           : Wait for time to pass (important for processes)
-  - inventory                      : Check what you're carrying
-  - task                           : Review current task description
-  - check valid actions            : List all currently valid actions
+Other Actions:
+  - eat [object]                   : Eat a food item
+  - flush [object]                 : Flush a toilet
+  - wait [duration]                : Take no action for some duration (default: wait 1)
+  - inventory                      : List agent's inventory
+  - task                           : Describe current task
 
 ==================================================
 IMPORTANT RULES
@@ -62,8 +68,9 @@ IMPORTANT RULES
 2. Some containers must be opened before accessing contents
 3. Use "wait" command to let processes complete (heating, melting, growing, etc.)
 4. Phase changes (boiling, melting, freezing) require time - use "wait" repeatedly
-5. Focus on objects when the task requires it
+5. Use "focus on [object]" when the task requires focusing on a specific substance
 6. For temperature tasks, use thermometer with "use thermometer on [object]"
+7. For chemistry tasks, use "mix [container]" after adding substances to mix them
 
 ==================================================
 OUTPUT FORMAT (REQUIRED)

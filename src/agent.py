@@ -49,14 +49,18 @@ class EpisodeResult:
 class ReActAgent:
     """ReAct-style agent for ScienceWorld tasks."""
 
-    # Action keywords for fallback parsing
+    # Action keywords for fallback parsing (matching ScienceWorld's 25 actions)
     ACTION_KEYWORDS = (
-        "look around", "go to", "teleport to",
-        "pick up", "put down", "move", "examine", "focus on",
-        "open", "close", "pour",
-        "activate", "deactivate", "use", "connect",
-        "wait", "inventory", "task",
-        "check valid actions"
+        # Navigation
+        "look around", "look at", "look in", "go to", "teleport to",
+        # Object manipulation
+        "pick up", "put down", "move", "focus on",
+        # Container operations
+        "open", "close", "pour", "dunk", "mix",
+        # Equipment/device operations
+        "activate", "deactivate", "use", "connect", "disconnect", "read",
+        # Other actions
+        "eat", "flush", "wait", "inventory", "task",
     )
 
     def __init__(
