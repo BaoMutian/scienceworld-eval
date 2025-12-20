@@ -101,6 +101,8 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+    logging.getLogger("py4j").setLevel(logging.ERROR)
+    logging.getLogger("scienceworld").setLevel(logging.WARNING)
 
 
 def log_episode_start(episode_id: str, task_desc: str) -> None:

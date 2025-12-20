@@ -202,23 +202,23 @@ class Evaluator:
                 logger.warning(f"No variations found for {task_name} in {self.config.test.split}")
                 continue
             
-            # Shuffle and limit variations based on seed
-            random.seed(self.config.test.seed)
-            random.shuffle(variations)
+            # Shuffle variations based on seed
+            random.seed(self.config.test.seed + hash(task_id))
+            shuffled_vars = variations.copy()
+            random.shuffle(shuffled_vars)
             
-            # For each variation, run num_episodes episodes
-            for var_idx, variation in enumerate(variations):
-                for episode in range(self.config.test.num_episodes):
-                    schedule.append({
-                        "task_id": task_id,
-                        "task_name": task_name,
-                        "variation": variation,
-                        "episode": episode,
-                        "episode_id": get_episode_id(task_id, variation, episode),
-                    })
-                
-                # Limit total variations per task (optional)
-                # Uncomment to limit: if var_idx >= 2: break
+            # Limit to num_episodes variations (1 episode per variation for efficiency)
+            # This gives num_episodes total per task
+            selected_vars = shuffled_vars[:self.config.test.num_episodes]
+            
+            for var_idx, variation in enumerate(selected_vars):
+                schedule.append({
+                    "task_id": task_id,
+                    "task_name": task_name,
+                    "variation": variation,
+                    "episode": 0,  # Single episode per variation
+                    "episode_id": get_episode_id(task_id, variation, 0),
+                })
         
         env.close()
         
@@ -323,41 +323,57 @@ class Evaluator:
         variation = task_info["variation"]
         episode = task_info["episode"]
         
-        # Get goal for memory retrieval (need to reset env first)
-        goal = ""
         env = None
         try:
+            # Create single environment for the entire episode
             env = ScienceWorldEnv(self.config.test.simplifications)
             obs, info = env.reset(task_name, variation)
             goal = extract_task_description(obs, info.get("taskDesc", ""))
+            
+            # Retrieve relevant memories
+            retrieved_memories = self._retrieve_memories(task_name, goal) if goal else []
+            
+            # Create agent and run
+            from .agent import ReActAgent, EpisodeResult as ER
+            
+            agent = ReActAgent(
+                llm_client=self.llm_client,
+                use_few_shot=self.config.prompt.use_few_shot,
+                history_length=self.config.prompt.history_length,
+                debug=self.config.runtime.debug,
+                retrieved_memories=retrieved_memories,
+                task_name=task_name,
+            )
+            
+            result = agent.run_episode(
+                env, obs, info,
+                max_steps=self.config.test.max_steps,
+                episode_num=episode
+            )
+            
+            # Extract and store memory if enabled
+            if self.config.memory.should_extract():
+                self._extract_and_store_memory(result)
+            
+            return result
+            
         except Exception as e:
-            logger.error(f"Failed to get goal for memory retrieval: {e}")
+            logger.error(f"Error running episode {task_info['episode_id']}: {e}")
+            from .agent import EpisodeResult as ER
+            return ER(
+                episode_id=task_info["episode_id"],
+                task_id=task_info["task_id"],
+                task_name=task_name,
+                variation=variation,
+                success=False,
+                score=0,
+                steps=0,
+                goal="",
+                error=str(e),
+            )
         finally:
             if env:
                 env.close()
-        
-        # Retrieve relevant memories
-        retrieved_memories = self._retrieve_memories(task_name, goal) if goal else []
-
-        # Run episode
-        result = run_single_episode(
-            task_name=task_name,
-            variation_idx=variation,
-            episode_num=episode,
-            llm_client=self.llm_client,
-            simplifications=self.config.test.simplifications,
-            use_few_shot=self.config.prompt.use_few_shot,
-            history_length=self.config.prompt.history_length,
-            max_steps=self.config.test.max_steps,
-            debug=self.config.runtime.debug,
-            retrieved_memories=retrieved_memories,
-        )
-
-        # Extract and store memory if enabled
-        if self.config.memory.should_extract():
-            self._extract_and_store_memory(result)
-
-        return result
 
     def run(self) -> None:
         """Run the evaluation."""
@@ -369,7 +385,7 @@ class Evaluator:
         print(f"  Model:    {Colors.info(self.config.llm.model)}")
         print(f"  Split:    {Colors.info(self.config.test.split)}")
         print(f"  Tasks:    {Colors.info(str(self.config.test.task_ids or 'all'))}")
-        print(f"  Episodes: {Colors.info(str(self.config.test.num_episodes))} per variation")
+        print(f"  Variations: {Colors.info(str(self.config.test.num_episodes))} per task")
         print(f"  Simplify: {Colors.info(self.config.test.simplifications)}")
         print(f"  Run ID:   {Colors.dim(self.run_id)}")
         

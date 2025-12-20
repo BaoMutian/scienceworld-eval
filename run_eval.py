@@ -52,7 +52,7 @@ Examples:
     parser.add_argument("--temperature", type=float, help="Sampling temperature")
 
     # Test settings
-    parser.add_argument("--num-episodes", "-n", type=int, help="Episodes per variation")
+    parser.add_argument("--num-episodes", "-n", type=int, help="Variations to test per task")
     parser.add_argument(
         "--split", "-s",
         type=str,
