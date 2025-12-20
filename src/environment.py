@@ -165,7 +165,7 @@ class ScienceWorldEnv:
             List of task names.
         """
         self._ensure_env()
-        return self.env.getTaskNames()
+        return self.env.get_task_names()
 
     def get_variations(self, task_name: str, split: str = "dev") -> List[int]:
         """Get available variations for a task.
@@ -182,13 +182,13 @@ class ScienceWorldEnv:
         # Need to load the task first to get its variations
         self.env.load(task_name, 0, "")
         
-        # Use appropriate method based on split
+        # Use appropriate method based on split (snake_case API)
         if split == "train":
-            return list(self.env.getVariationsTrain())
+            return list(self.env.get_variations_train())
         elif split == "test":
-            return list(self.env.getVariationsTest())
+            return list(self.env.get_variations_test())
         else:  # dev
-            return list(self.env.getVariationsDev())
+            return list(self.env.get_variations_dev())
 
     def get_all_tasks(self) -> Dict[str, str]:
         """Get mapping of all task IDs to names.
@@ -294,7 +294,7 @@ class ScienceWorldEnv:
         """
         if self.env is None:
             return ""
-        return self.env.getTaskDescription()
+        return self.env.get_task_description()
 
     def get_score(self) -> float:
         """Get current score.
@@ -304,7 +304,7 @@ class ScienceWorldEnv:
         """
         if self.env is None:
             return 0
-        return self.env.getScore()
+        return self.env.get_score()
 
     def get_valid_actions(self) -> List[str]:
         """Get list of currently valid actions.
