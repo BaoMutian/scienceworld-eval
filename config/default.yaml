@@ -1,0 +1,61 @@
+# ScienceWorld Evaluation Configuration
+
+# LLM Service Configuration
+llm:
+  api_base_url: "https://openrouter.ai/api/v1"
+  api_key: ""  # Set via OPENROUTER_API_KEY or OPENAI_API_KEY env var
+  model: "qwen/qwen3-8b"
+  temperature: 0.3
+  max_tokens: 1024
+  timeout: 60
+
+# Retry Configuration
+retry:
+  max_retries: 3
+  retry_interval: 1.0
+  max_retry_interval: 30.0
+
+# Test Configuration
+test:
+  num_episodes: 5         # Number of episodes per task variation
+  task_ids: null          # null = all tasks, or list like ["1-1", "4-1", "4-2"]
+  split: "dev"            # train/dev/test
+  seed: 42
+  max_steps: 50           # Maximum steps per episode
+  simplifications: "easy" # easy, or comma-separated: "teleportAction,openDoors"
+
+# Prompt Configuration
+prompt:
+  use_few_shot: true
+  history_length: 20      # Number of recent history entries to include
+
+# Runtime Configuration
+runtime:
+  save_interval: 1        # Save checkpoint every N episodes
+  output_dir: "results"
+  debug: false
+
+# Memory Configuration (ReasoningBank)
+memory:
+  enabled: false
+  mode: "baseline"        # baseline | retrieve_only | retrieve_and_extract
+
+  # Storage configuration
+  memory_dir: "memory_banks"
+  task_name: "scienceworld"
+
+  # Embedding model configuration
+  embedding_model: "BAAI/bge-base-en-v1.5"
+  embedding_device: "cpu"
+
+  # Retrieval parameters
+  top_k: 1
+  similarity_threshold: 0.5
+
+  # MaTTS configuration (Memory-aware Test-Time Scaling)
+  matts:
+    enabled: false
+    sample_n: 3
+    temperature: 0.7
+    max_tokens: 1024
+

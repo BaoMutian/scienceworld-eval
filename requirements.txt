@@ -1,0 +1,26 @@
+# ScienceWorld Evaluation Dependencies
+
+# ScienceWorld environment
+scienceworld>=1.1.6
+
+# LLM API client
+openai>=1.0.0
+
+# Retry mechanism
+tenacity>=8.0.0
+
+# Embedding model for memory retrieval
+sentence-transformers>=2.0.0
+
+# Numerical operations
+numpy>=1.20.0
+
+# Configuration management
+pyyaml>=6.0
+
+# Progress bar
+tqdm>=4.60.0
+
+# JSON repair for robust LLM output parsing
+json-repair>=0.25.0
+
