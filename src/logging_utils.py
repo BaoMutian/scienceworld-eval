@@ -66,22 +66,23 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
         debug: Whether to enable debug logging.
         log_file: Optional path to log file.
     """
-    level = logging.DEBUG if debug else logging.INFO
+    # Root logger level
+    root_level = logging.DEBUG if debug else logging.INFO
     
     # Configure root logger
     handlers = []
     
-    # Console handler
+    # Console handler - always INFO level (don't print DEBUG to terminal)
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
+    console_handler.setLevel(logging.INFO)
     console_format = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "%(asctime)s - %(levelname)s - %(message)s",
         datefmt="%H:%M:%S"
     )
     console_handler.setFormatter(console_format)
     handlers.append(console_handler)
     
-    # File handler if specified
+    # File handler if specified - DEBUG level for full logs
     if log_file:
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
@@ -92,7 +93,7 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
         handlers.append(file_handler)
     
     logging.basicConfig(
-        level=level,
+        level=root_level,
         handlers=handlers,
         force=True,
     )

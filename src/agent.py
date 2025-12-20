@@ -163,11 +163,19 @@ class ReActAgent:
         result.observations.append(current_obs)
 
         if self.debug:
+            # Log to file only
             log_episode_start(episode_id, task_desc)
-            print(f"\n{Colors.info('Episode:')} {episode_id}")
-            print(f"{Colors.dim('Goal:')} {task_desc}")
+            # Print to terminal
+            print(f"\n{Colors.highlight('='*50)}")
+            print(f"{Colors.info('Episode:')} {episode_id}")
+            print(f"{Colors.dim('Goal:')} {task_desc[:150]}{'...' if len(task_desc) > 150 else ''}")
             if self.retrieved_memories:
-                print(f"{Colors.dim('Using')} {Colors.info(str(len(self.retrieved_memories)))} {Colors.dim('retrieved memories')}")
+                print(f"{Colors.dim('Retrieved memories:')}")
+                for rm in self.retrieved_memories:
+                    status = Colors.success('✓') if rm.is_success else Colors.warning('✗')
+                    titles = [item.title for item in rm.memory_items[:2]]
+                    print(f"  {status} sim={rm.similarity:.2f} | {', '.join(titles)}")
+            print(f"{Colors.highlight('-'*50)}")
 
         try:
             for step in range(max_steps):
@@ -191,10 +199,13 @@ class ReActAgent:
                 result.observations.append(obs)
 
                 if self.debug:
+                    # Log full prompt/response to file only
                     log_step_interaction(
                         step + 1, user_prompt, response, action, obs)
-                    print(f"  Step {step + 1}: {Colors.info(action)}")
-                    print(f"    -> {obs[:100]}..." if len(obs) > 100 else f"    -> {obs}")
+                    # Print concise info to terminal
+                    obs_preview = obs.replace('\n', ' ')[:80]
+                    print(f"  [{step + 1:2d}] {Colors.info(action)}")
+                    print(f"      {Colors.dim('->')} {obs_preview}{'...' if len(obs) > 80 else ''}")
 
                 history.append((action, obs))
                 current_obs = obs
@@ -204,12 +215,12 @@ class ReActAgent:
                 if step_info.get("is_complete", False):
                     result.success = True
                     if self.debug:
-                        print(f"  {Colors.success('>>> Task completed!')}")
+                        print(f"  {Colors.success('>>> Task completed!')} Score: {result.score}")
                     break
 
                 if done:
                     if self.debug:
-                        print(f"  {Colors.warning('>>> Episode ended')}")
+                        print(f"  {Colors.warning('>>> Episode ended')} Score: {result.score}")
                     break
 
         except Exception as e:
@@ -217,7 +228,12 @@ class ReActAgent:
             logger.error(f"Error during episode {episode_id}: {e}")
 
         if self.debug:
+            # Log to file
             log_episode_end(episode_id, result.success, result.score, result.steps)
+            # Print summary to terminal
+            status = Colors.success('SUCCESS') if result.success else Colors.error('FAILED')
+            print(f"{Colors.highlight('-'*50)}")
+            print(f"  Result: {status} | Score: {result.score:.0f} | Steps: {result.steps}")
 
         return result
 
