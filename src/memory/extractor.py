@@ -212,7 +212,8 @@ class MemoryExtractor:
             )
 
             logger.debug("")
-            logger.debug(f"[RESULT] Extracted {len(memory_items)} memory items")
+            logger.debug(
+                f"[RESULT] Extracted {len(memory_items)} memory items")
             logger.debug("")
 
             return memory
@@ -311,7 +312,8 @@ class MemoryExtractor:
             )
 
             logger.debug("")
-            logger.debug(f"[RESULT] Extracted {len(memory_items)} items from {len(trajectories)} trajectories")
+            logger.debug(
+                f"[RESULT] Extracted {len(memory_items)} items from {len(trajectories)} trajectories")
             logger.debug("")
 
             return memory

@@ -133,7 +133,8 @@ def log_episode_end(episode_id: str, success: bool, score: float, steps: int) ->
     logger = logging.getLogger(__name__)
     result = "SUCCESS" if success else "FAILED"
     logger.debug("")
-    logger.debug(f"EPISODE END: {episode_id} | {result} | Score: {score} | Steps: {steps}")
+    logger.debug(
+        f"EPISODE END: {episode_id} | {result} | Score: {score} | Steps: {steps}")
     logger.debug("=" * 80)
 
 
