@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 
 def _try_parse_json(text: str) -> Optional[List[Dict]]:
     """Try to parse JSON from text, with multiple strategies.
-    
+
     Args:
         text: Text that may contain JSON.
-        
+
     Returns:
         Parsed JSON list or None if parsing fails.
     """
     # Clean the text
     text = text.strip()
-    
+
     # Try direct parsing first
     try:
         result = json.loads(text)
@@ -38,7 +38,7 @@ def _try_parse_json(text: str) -> Optional[List[Dict]]:
     # Look for [ ... ] pattern
     start_idx = text.find('[')
     end_idx = text.rfind(']')
-    
+
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
         json_str = text[start_idx:end_idx + 1]
         try:
@@ -72,40 +72,40 @@ def _try_parse_json(text: str) -> Optional[List[Dict]]:
 
 def _validate_memory_items(items: List[Dict]) -> List[MemoryEntry]:
     """Validate and convert parsed items to MemoryEntry objects.
-    
+
     Args:
         items: List of parsed dictionaries.
-        
+
     Returns:
         List of valid MemoryEntry objects.
     """
     valid_entries = []
-    
+
     for item in items:
         if not isinstance(item, dict):
             continue
-            
+
         title = str(item.get("title", "")).strip()
         description = str(item.get("description", "")).strip()
         content = str(item.get("content", "")).strip()
-        
+
         # Skip entries with missing essential fields
         if not title or not content:
             logger.debug(f"Skipping invalid entry: missing title or content")
             continue
-            
+
         valid_entries.append(MemoryEntry(
             title=title,
             description=description,
             content=content,
         ))
-    
+
     return valid_entries
 
 
 class MemoryExtractor:
     """Extractor for extracting memory items from task trajectories.
-    
+
     Uses LLM to analyze trajectories and extract reusable strategies.
     """
 
@@ -116,7 +116,7 @@ class MemoryExtractor:
         max_tokens: int = 1024,
     ):
         """Initialize memory extractor.
-        
+
         Args:
             llm_client: LLM client for generating extractions.
             temperature: Sampling temperature for extraction.
@@ -135,23 +135,25 @@ class MemoryExtractor:
         is_success: bool,
     ) -> Optional[Memory]:
         """Extract memory from a single trajectory.
-        
+
         Args:
             task_id: Unique task identifier (episode_id).
             task_type: Type of the task (task_name).
             goal: Task goal description.
             trajectory: List of action-observation pairs.
             is_success: Whether the task was successful.
-            
+
         Returns:
             Memory object if extraction succeeds, None otherwise.
         """
         if not trajectory:
-            logger.warning(f"Empty trajectory for task {task_id}, skipping extraction")
+            logger.warning(
+                f"Empty trajectory for task {task_id}, skipping extraction")
             return None
 
         try:
             # Build extraction prompt
+            system_prompt = "You are an expert at analyzing science experiment execution and extracting reusable strategies."
             prompt = build_extraction_prompt(
                 task_type=task_type,
                 goal=goal,
@@ -159,12 +161,10 @@ class MemoryExtractor:
                 is_success=is_success,
             )
 
-            system_prompt = "You are an expert at analyzing science experiment execution and extracting reusable strategies."
-
-            # Log extraction request
+            # Log extraction prompt for debug
             logger.debug("")
             logger.debug("=" * 80)
-            logger.debug(f"MEMORY EXTRACTION: {task_id}")
+            logger.debug(f"MEMORY EXTRACTION - {task_id}")
             logger.debug("=" * 80)
             logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
             logger.debug(system_prompt)
@@ -178,24 +178,26 @@ class MemoryExtractor:
                 user_prompt=prompt,
             )
 
-            # Log extraction response
+            # Log LLM response
             logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
             logger.debug(response)
             logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)
-            
+
             if items is None:
-                logger.warning(f"Failed to parse extraction response for task {task_id}")
+                logger.warning(
+                    f"Failed to parse extraction response for task {task_id}")
                 logger.debug(f"Raw response: {response[:500]}...")
                 return None
 
             # Validate and convert to MemoryEntry
             memory_items = _validate_memory_items(items)
-            
+
             if not memory_items:
-                logger.warning(f"No valid memory items extracted for task {task_id}")
+                logger.warning(
+                    f"No valid memory items extracted for task {task_id}")
                 return None
 
             # Create Memory object
@@ -213,7 +215,7 @@ class MemoryExtractor:
                 f"Extracted {len(memory_items)} memory items for task {task_id} "
                 f"({'success' if is_success else 'failure'})"
             )
-            
+
             return memory
 
         except Exception as e:
@@ -228,37 +230,37 @@ class MemoryExtractor:
         trajectories: List[Dict],
     ) -> Optional[Memory]:
         """Extract memory from multiple trajectories using contrastive analysis.
-        
+
         Used for MaTTS (Memory-aware Test-Time Scaling) where multiple
         attempts are compared to extract higher-quality insights.
-        
+
         Args:
             task_id: Unique task identifier.
             task_type: Type of the task (task_name).
             goal: Task goal description.
             trajectories: List of trajectory dicts with 'trajectory' and 'is_success'.
-            
+
         Returns:
             Memory object if extraction succeeds, None otherwise.
         """
         if not trajectories:
-            logger.warning(f"No trajectories for contrastive extraction, task {task_id}")
+            logger.warning(
+                f"No trajectories for contrastive extraction, task {task_id}")
             return None
 
         try:
             # Build contrastive extraction prompt
+            system_prompt = "You are an expert at analyzing science experiment execution and extracting patterns from multiple attempts."
             prompt = build_contrastive_extraction_prompt(
                 task_type=task_type,
                 goal=goal,
                 trajectories=trajectories,
             )
 
-            system_prompt = "You are an expert at analyzing science experiment execution and extracting patterns from multiple attempts."
-
-            # Log contrastive extraction request
+            # Log extraction prompt for debug
             logger.debug("")
             logger.debug("=" * 80)
-            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION: {task_id}")
+            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION - {task_id}")
             logger.debug("=" * 80)
             logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
             logger.debug(system_prompt)
@@ -272,27 +274,29 @@ class MemoryExtractor:
                 user_prompt=prompt,
             )
 
-            # Log contrastive extraction response
+            # Log LLM response
             logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
             logger.debug(response)
             logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)
-            
+
             if items is None:
-                logger.warning(f"Failed to parse contrastive extraction response for task {task_id}")
+                logger.warning(
+                    f"Failed to parse contrastive extraction response for task {task_id}")
                 return None
 
             memory_items = _validate_memory_items(items)
-            
+
             if not memory_items:
-                logger.warning(f"No valid memory items from contrastive extraction for task {task_id}")
+                logger.warning(
+                    f"No valid memory items from contrastive extraction for task {task_id}")
                 return None
 
             # Determine overall success (any success counts)
             any_success = any(t.get("is_success", False) for t in trajectories)
-            
+
             # Use the first trajectory as representative
             representative_trajectory = trajectories[0].get("trajectory", [])
 
@@ -310,10 +314,10 @@ class MemoryExtractor:
                 f"Contrastive extraction: {len(memory_items)} items from "
                 f"{len(trajectories)} trajectories for task {task_id}"
             )
-            
+
             return memory
 
         except Exception as e:
-            logger.error(f"Contrastive extraction failed for task {task_id}: {e}")
+            logger.error(
+                f"Contrastive extraction failed for task {task_id}: {e}")
             return None
-

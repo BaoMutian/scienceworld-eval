@@ -131,11 +131,13 @@ The following examples show how to complete similar tasks:
 def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
     """Format trajectory for memory display.
 
+    Shows all actions in the trajectory (no observation, to keep it concise).
+
     Args:
         trajectory: List of action-observation pairs.
 
     Returns:
-        Formatted trajectory string (full content, no truncation).
+        Formatted trajectory string with all actions listed.
     """
     if not trajectory:
         return "(empty)"
@@ -143,11 +145,7 @@ def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
     lines = []
     for i, step in enumerate(trajectory, 1):
         action = step.get("action", "")
-        observation = step.get("observation", "")
-        lines.append(f"  Step {i}:")
-        lines.append(f"    Action: {action}")
-        if observation:
-            lines.append(f"    Observation: {observation}")
+        lines.append(f"  {i}. {action}")
 
     return "\n".join(lines)
 
@@ -155,11 +153,13 @@ def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
 def _format_memory_items(memory_items: List) -> str:
     """Format memory items for display.
 
+    Shows full content without truncation for LLM to learn from.
+
     Args:
         memory_items: List of MemoryEntry objects.
 
     Returns:
-        Formatted memory items string (full content, no truncation).
+        Formatted memory items string with full content.
     """
     if not memory_items:
         return ""
