@@ -168,8 +168,10 @@ class ReActAgent:
             used_memories=used_memories,
         )
 
+        # History stores (action, observation_after_action) pairs
+        # build_user_prompt will handle not duplicating the last observation
         history: List[Tuple[str, str]] = []
-        initial_observation = initial_obs  # Save initial observation
+        initial_observation = initial_obs  # Save for prompt building
         current_obs = initial_obs
         result.observations.append(current_obs)
 
@@ -229,6 +231,7 @@ class ReActAgent:
                     print(
                         f"      {Colors.dim('->')} {obs_preview}{'...' if len(obs) > 80 else ''}")
 
+                # Add to history after LLM call (action, result_of_action)
                 history.append((action, obs))
                 current_obs = obs
                 result.steps = step + 1

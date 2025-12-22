@@ -264,13 +264,18 @@ def build_user_prompt(
 
     Args:
         task_description: The task goal description.
-        history: List of (action, observation) tuples from previous steps.
-        current_observation: The most recent observation (after last action).
-        initial_observation: The initial observation before any action.
+        history: List of (action, observation_after_action) tuples.
+        current_observation: The most recent observation (after last action, or initial if no actions).
+        initial_observation: The initial environment observation before any actions.
         history_length: Number of recent history entries to include.
 
     Returns:
         Formatted user prompt string.
+        
+    Note:
+        - The last entry in history has the same observation as current_observation,
+          so we don't show the observation for the last action in history.
+        - If history can fit within history_length, we also show the initial observation.
     """
     parts = []
 
@@ -284,39 +289,43 @@ def build_user_prompt(
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
     parts.append("  - Use 'wait' command if a process needs time to complete")
-    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location")
+    parts.append(
+        "  - Use 'teleport' command (if enabled) to quickly move to a specific location")
     parts.append("")
 
-    # Add interaction history
+    # Add recent history
     parts.append("==================================================")
-    parts.append("INTERACTION HISTORY")
+    parts.append("RECENT HISTORY")
     parts.append("==================================================")
 
-    # Include initial observation first
-    if initial_observation:
-        parts.append(f"Initial Observation: {initial_observation}")
+    # Determine which history entries to include
+    if len(history) > history_length:
+        recent_history = history[-history_length:]
+        include_initial = False
+    else:
+        recent_history = history
+        include_initial = True  # Can fit initial observation
+
+    # Show initial observation if we have room and it exists
+    if include_initial and initial_observation:
+        parts.append("Initial Observation:")
+        parts.append(initial_observation)
         parts.append("")
 
-    # Get recent history (excluding the last observation since it's current_observation)
-    # history format: [(action1, obs1), (action2, obs2), ...]
-    # obs_i is the observation AFTER action_i
-    # current_observation = observation after the most recent action
-    
-    if history:
-        # Limit history length
-        recent_history = history[-history_length:] if len(history) > history_length else history
-        
-        # Show all actions, but only observations up to second-to-last
-        # (last observation is shown as current_observation)
+    # Add action-observation pairs (full observations, no truncation)
+    # Don't show observation for the last action (it's the same as current_observation)
+    if recent_history:
         for i, (action, observation) in enumerate(recent_history):
             parts.append(f"Action: {action}")
-            # Don't show the last observation here - it will be shown as current_observation
+            # Show observation for all but the last entry
             if i < len(recent_history) - 1:
                 parts.append(f"Observation: {observation}")
                 parts.append("")
-    
-    # Add current observation (result of most recent action)
-    parts.append("")
+            else:
+                # Last action - observation will be shown as current observation
+                parts.append("")
+
+    # Add current observation (the result of the last action, or initial if no actions)
     parts.append("==================================================")
     parts.append("CURRENT OBSERVATION")
     parts.append("==================================================")
