@@ -17,28 +17,28 @@ retry:
 
 # Test Configuration
 test:
-  num_episodes: 3 # Number of variations to test per task (1 episode each)
+  num_episodes: 5 # Number of variations to test per task (1 episode each)
   task_ids: null # null = all tasks, or list like ["1-1", "4-1", "4-2"]
   split: "dev" # train/dev/test
   seed: 42
-  max_steps: 50 # Maximum steps per episode
+  max_steps: 30 # Maximum steps per episode
   simplifications: "easy" # easy, or comma-separated: "teleportAction,openDoors"
 
 # Prompt Configuration
 prompt:
   use_few_shot: true
-  history_length: 20 # Number of recent history entries to include
+  history_length: 30 # Number of recent history entries to include
 
 # Runtime Configuration
 runtime:
   save_interval: 1 # Save checkpoint every N episodes
   output_dir: "results"
-  debug: false
+  debug: true
 
 # Memory Configuration (ReasoningBank)
 memory:
-  enabled: false
-  mode: "baseline" # baseline | retrieve_only | retrieve_and_extract
+  enabled: true
+  mode: "retrieve_and_extract" # baseline | retrieve_only | retrieve_and_extract
 
   # Storage configuration
   memory_dir: "memory_banks"

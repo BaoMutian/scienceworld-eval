@@ -73,7 +73,6 @@ Action: <exact command from the list above>
 IMPORTANT:
 - Always include both "Think:" and "Action:" sections
 - The action must be a valid command with exact object names
-- If stuck, use "check valid actions" to see available options
 - You CAN carry multiple objects at once
 - Phase changes may require time to complete"""
 
@@ -269,7 +268,6 @@ def build_user_prompt(
     parts.append(f"Goal: {task_description}")
     parts.append("")
     parts.append("Hints:")
-    parts.append("  - Type 'check valid actions' if you're unsure what to do")
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
     parts.append("  - Use 'wait' command if a process needs time to complete")

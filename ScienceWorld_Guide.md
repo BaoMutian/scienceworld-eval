@@ -386,11 +386,11 @@ python scienceworld_test.py --task_ids 3-1 3-2 --simplifications "teleportAction
 
 | 命令      | 格式                | 示例             | 说明                         |
 | --------- | ------------------- | ---------------- | ---------------------------- |
-| wait      | `wait`              | `wait`           | 等待一个时间步               |
-| wait1     | `wait1`             | `wait1`          | 等待（同 wait）              |
+| wait      | `wait`              | `wait`           | 等待10个时间步               |
+| wait1     | `wait1`             | `wait1`          | 等待1个时间步                |
 | inventory | `inventory`         | `inventory`      | 查看携带的物品               |
 | task      | `task`              | `task`           | 查看当前任务描述             |
-| focus on  | `focus on [object]` | `focus on water` | 聚焦特定物体（某些任务需要） |
+| focus on  | `focus on [object]` | `focus on water` | 聚焦特定物体（某些任务需要）  |
 
 ### 5.6 重要规则
 
