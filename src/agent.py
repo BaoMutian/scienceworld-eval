@@ -73,7 +73,7 @@ class ReActAgent:
         task_name: Optional[str] = None,
     ):
         """Initialize ReAct agent.
-        
+
         Args:
             llm_client: LLM client for generating responses.
             use_few_shot: Whether to include few-shot examples.
@@ -86,7 +86,7 @@ class ReActAgent:
         self.history_length = history_length
         self.debug = debug
         self.retrieved_memories = retrieved_memories or []
-        
+
         # Build system prompt with optional memories
         self.system_prompt = get_system_prompt_with_memory(
             use_few_shot=use_few_shot,
@@ -140,11 +140,12 @@ class ReActAgent:
         episode_num: int = 0,
     ) -> EpisodeResult:
         """Run a single episode with the agent."""
-        task_desc = extract_task_description(initial_obs, info.get("taskDesc", ""))
+        task_desc = extract_task_description(
+            initial_obs, info.get("taskDesc", ""))
         task_name = info.get("task_name", "")
         task_id = info.get("task_id", "")
         variation = info.get("variation", 0)
-        
+
         episode_id = get_episode_id(task_id, variation, episode_num)
 
         # Record used memories
@@ -172,13 +173,16 @@ class ReActAgent:
             # Print to terminal
             print(f"\n{Colors.highlight('='*50)}")
             print(f"{Colors.info('Episode:')} {episode_id}")
-            print(f"{Colors.dim('Goal:')} {task_desc[:150]}{'...' if len(task_desc) > 150 else ''}")
+            print(
+                f"{Colors.dim('Goal:')} {task_desc[:150]}{'...' if len(task_desc) > 150 else ''}")
             if self.retrieved_memories:
                 print(f"{Colors.dim('Retrieved memories:')}")
                 for rm in self.retrieved_memories:
-                    status = Colors.success('✓') if rm.is_success else Colors.warning('✗')
+                    status = Colors.success(
+                        '✓') if rm.is_success else Colors.warning('✗')
                     titles = [item.title for item in rm.memory_items[:2]]
-                    print(f"  {status} sim={rm.similarity:.2f} | {', '.join(titles)}")
+                    print(
+                        f"  {status} sim={rm.similarity:.2f} | {', '.join(titles)}")
             print(f"{Colors.highlight('-'*50)}")
 
         try:
@@ -215,7 +219,8 @@ class ReActAgent:
                     # Print concise info to terminal
                     obs_preview = obs.replace('\n', ' ')[:80]
                     print(f"  [{step + 1:2d}] {Colors.info(action)}")
-                    print(f"      {Colors.dim('->')} {obs_preview}{'...' if len(obs) > 80 else ''}")
+                    print(
+                        f"      {Colors.dim('->')} {obs_preview}{'...' if len(obs) > 80 else ''}")
 
                 history.append((action, obs))
                 current_obs = obs
@@ -225,12 +230,14 @@ class ReActAgent:
                 if step_info.get("is_complete", False):
                     result.success = True
                     if self.debug:
-                        print(f"  {Colors.success('>>> Task completed!')} Score: {result.score}")
+                        print(
+                            f"  {Colors.success('>>> Task completed!')} Score: {result.score}")
                     break
 
                 if done:
                     if self.debug:
-                        print(f"  {Colors.warning('>>> Episode ended')} Score: {result.score}")
+                        print(
+                            f"  {Colors.warning('>>> Episode ended')} Score: {result.score}")
                     break
 
         except Exception as e:
@@ -239,11 +246,14 @@ class ReActAgent:
 
         if self.debug:
             # Log to file
-            log_episode_end(episode_id, result.success, result.score, result.steps)
+            log_episode_end(episode_id, result.success,
+                            result.score, result.steps)
             # Print summary to terminal
-            status = Colors.success('SUCCESS') if result.success else Colors.error('FAILED')
+            status = Colors.success(
+                'SUCCESS') if result.success else Colors.error('FAILED')
             print(f"{Colors.highlight('-'*50)}")
-            print(f"  Result: {status} | Score: {result.score:.0f} | Steps: {result.steps}")
+            print(
+                f"  Result: {status} | Score: {result.score:.0f} | Steps: {result.steps}")
 
         return result
 
@@ -261,7 +271,7 @@ def run_single_episode(
     retrieved_memories: Optional[List["RetrievedMemory"]] = None,
 ) -> EpisodeResult:
     """Run a single episode from scratch.
-    
+
     Args:
         task_name: Name of the task.
         variation_idx: Variation index.
@@ -273,7 +283,7 @@ def run_single_episode(
         max_steps: Maximum steps per episode.
         debug: Whether to enable debug logging.
         retrieved_memories: Optional list of retrieved memories to use.
-        
+
     Returns:
         EpisodeResult with execution results.
     """
@@ -292,13 +302,14 @@ def run_single_episode(
         )
 
         return agent.run_episode(
-            env, obs, info, 
-            max_steps=max_steps, 
+            env, obs, info,
+            max_steps=max_steps,
             episode_num=episode_num
         )
 
     except Exception as e:
-        logger.error(f"Error running episode for {task_name} v{variation_idx}: {e}")
+        logger.error(
+            f"Error running episode for {task_name} v{variation_idx}: {e}")
         from .environment import get_task_id_from_name
         task_id = get_task_id_from_name(task_name)
         episode_id = get_episode_id(task_id, variation_idx, episode_num)
@@ -316,4 +327,3 @@ def run_single_episode(
     finally:
         if env:
             env.close()
-

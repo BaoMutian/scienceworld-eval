@@ -202,8 +202,11 @@ class Evaluator:
                 logger.warning(f"No variations found for {task_name} in {self.config.test.split}")
                 continue
             
-            # Shuffle variations based on seed
-            random.seed(self.config.test.seed + hash(task_id))
+            # Shuffle variations based on seed (use deterministic hash)
+            # Note: Python's hash() is non-deterministic for strings across runs
+            # Use a simple deterministic hash instead
+            task_seed = self.config.test.seed + sum(ord(c) for c in task_id)
+            random.seed(task_seed)
             shuffled_vars = variations.copy()
             random.shuffle(shuffled_vars)
             

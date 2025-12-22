@@ -13,7 +13,7 @@ _SYSTEM_PROMPT_BASE = """You are an intelligent agent operating in a virtual sci
 ==================================================
 ENVIRONMENT OVERVIEW
 ==================================================
-This environment simulates a household with multiple rooms (kitchen, outside, workshop, etc.) containing various objects, equipment, and living things. Tasks cover topics like:
+This environment simulates a household with 10 interconnected locations containing various objects, equipment, and living things. Tasks cover topics like:
 - Phase changes (boiling, melting, freezing)
 - Temperature measurement
 - Electrical circuits and conductivity
@@ -23,6 +23,18 @@ This environment simulates a household with multiple rooms (kitchen, outside, wo
 - Biology (life stages, genetics)
 - Physics (inclined planes, friction)
 
+Locations:
+- Kitchen       : This room is equipped with a fridge, stove, and sink, commonly used for thermodynamics experiments
+- Bathroom      : A domestic area containing a sink and a toilet, often used for navigation or finding specific household items
+- Workshop:     : This location houses various electrical components, such as batteries and wires
+- Art Studio    : This room contains paints and artistic materials, serving as the primary site for chemical mixing and color-creation tasks
+- Greenhouse    : A specialized environment for biological experiments
+- Outside       : This outdoor space includes natural elements like soil and ponds
+- Living Room   : A furnished area with bookshelves and paintings, frequently used for classification tasks or locating declarative knowledge in books
+- Bedroom       : A standard room within the house theme that contains furniture such as a bed and is used for navigation and object search
+- Hallway       : This area serves as the central connecting hub that allows agents to move between different locations in the house
+- Foundry       : An industrial-themed location that features a large forge and is used for complex material-based experiments
+
 ==================================================
 AVAILABLE COMMANDS
 ==================================================
@@ -31,7 +43,7 @@ Navigation:
   - look at [object]               : Describe an object in detail
   - look in [object]               : Describe a container's contents
   - go to [location]               : Move to a new location
-  - teleport to [location]         : Teleport to a specific location (if enabled)
+  - teleport to [location]         : Teleport to a specific location
 
 Object Manipulation:
   - pick up [object]               : Move an object to the inventory
@@ -270,7 +282,7 @@ def build_user_prompt(
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
     parts.append("  - Use 'wait' command if a process needs time to complete")
-    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location")
+    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location when lost")
     parts.append("")
 
     # Add recent history
