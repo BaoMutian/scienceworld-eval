@@ -164,7 +164,7 @@ class MemoryExtractor:
             # Log extraction prompt for debug
             logger.debug("")
             logger.debug("=" * 80)
-            logger.debug(f"MEMORY EXTRACTION - {task_id}")
+            logger.debug(f"MEMORY EXTRACTION: {task_id}")
             logger.debug("=" * 80)
             logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
             logger.debug(system_prompt)
@@ -178,7 +178,7 @@ class MemoryExtractor:
                 user_prompt=prompt,
             )
 
-            # Log LLM response
+            # Log LLM response for debug
             logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
             logger.debug(response)
             logger.debug("=" * 80)
@@ -189,7 +189,7 @@ class MemoryExtractor:
             if items is None:
                 logger.warning(
                     f"Failed to parse extraction response for task {task_id}")
-                logger.debug(f"Raw response: {response[:500]}...")
+                logger.debug(f"Raw response: {response}")
                 return None
 
             # Validate and convert to MemoryEntry
@@ -260,7 +260,7 @@ class MemoryExtractor:
             # Log extraction prompt for debug
             logger.debug("")
             logger.debug("=" * 80)
-            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION - {task_id}")
+            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION: {task_id}")
             logger.debug("=" * 80)
             logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
             logger.debug(system_prompt)
@@ -274,7 +274,7 @@ class MemoryExtractor:
                 user_prompt=prompt,
             )
 
-            # Log LLM response
+            # Log LLM response for debug
             logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
             logger.debug(response)
             logger.debug("=" * 80)
@@ -285,6 +285,7 @@ class MemoryExtractor:
             if items is None:
                 logger.warning(
                     f"Failed to parse contrastive extraction response for task {task_id}")
+                logger.debug(f"Raw response: {response}")
                 return None
 
             memory_items = _validate_memory_items(items)

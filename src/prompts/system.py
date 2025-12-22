@@ -131,21 +131,30 @@ The following examples show how to complete similar tasks:
 def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
     """Format trajectory for memory display.
 
-    Shows all actions in the trajectory (no observation, to keep it concise).
-
     Args:
         trajectory: List of action-observation pairs.
 
     Returns:
-        Formatted trajectory string with all actions listed.
+        Formatted trajectory string (abbreviated).
     """
     if not trajectory:
         return "(empty)"
 
+    max_show = 6
     lines = []
-    for i, step in enumerate(trajectory, 1):
-        action = step.get("action", "")
-        lines.append(f"  {i}. {action}")
+
+    if len(trajectory) <= max_show:
+        for step in trajectory:
+            action = step.get("action", "")
+            lines.append(f"  > {action}")
+    else:
+        for step in trajectory[:3]:
+            action = step.get("action", "")
+            lines.append(f"  > {action}")
+        lines.append(f"  ... ({len(trajectory) - 6} more steps) ...")
+        for step in trajectory[-3:]:
+            action = step.get("action", "")
+            lines.append(f"  > {action}")
 
     return "\n".join(lines)
 
@@ -153,13 +162,11 @@ def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
 def _format_memory_items(memory_items: List) -> str:
     """Format memory items for display.
 
-    Shows full content without truncation for LLM to learn from.
-
     Args:
         memory_items: List of MemoryEntry objects.
 
     Returns:
-        Formatted memory items string with full content.
+        Formatted memory items string.
     """
     if not memory_items:
         return ""
@@ -168,7 +175,7 @@ def _format_memory_items(memory_items: List) -> str:
     for item in memory_items:
         lines.append(f"    - {item.title}: {item.description}")
         if item.content:
-            # Full content, no truncation
+            # Full content - LLM needs complete information for reasoning
             lines.append(f"      {item.content}")
 
     return "\n".join(lines)
