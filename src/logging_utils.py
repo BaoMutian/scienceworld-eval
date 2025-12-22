@@ -59,6 +59,15 @@ class Colors:
         return f"{cls.DIM}{text}{cls.RESET}"
 
 
+class CleanDebugFormatter(logging.Formatter):
+    """Clean formatter for debug log files - only timestamp and message."""
+
+    def format(self, record):
+        # Only show timestamp and message for clean logs
+        timestamp = self.formatTime(record, self.datefmt)
+        return f"[{timestamp}] {record.getMessage()}"
+
+
 def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
     """Setup logging configuration.
 
@@ -86,9 +95,8 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
     if log_file:
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        # Use clean formatter for debug logs
+        file_format = CleanDebugFormatter(datefmt="%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_format)
         handlers.append(file_handler)
 
@@ -111,34 +119,22 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
 
 
 def log_episode_start(episode_id: str, task_desc: str) -> None:
-    """Log episode start for debug mode.
-
-    Args:
-        episode_id: Episode identifier.
-        task_desc: Task description.
-    """
+    """Log episode start for debug mode."""
     logger = logging.getLogger(__name__)
-    logger.debug("=" * 60)
-    logger.debug(f"EPISODE START: {episode_id}")
-    logger.debug(f"Task: {task_desc}")
-    logger.debug("=" * 60)
+    logger.debug("")
+    logger.debug("=" * 80)
+    logger.debug(f"EPISODE: {episode_id}")
+    logger.debug(f"TASK: {task_desc}")
+    logger.debug("=" * 80)
 
 
 def log_episode_end(episode_id: str, success: bool, score: float, steps: int) -> None:
-    """Log episode end for debug mode.
-
-    Args:
-        episode_id: Episode identifier.
-        success: Whether episode was successful.
-        score: Final score.
-        steps: Number of steps taken.
-    """
+    """Log episode end for debug mode."""
     logger = logging.getLogger(__name__)
     result = "SUCCESS" if success else "FAILED"
-    logger.debug("-" * 60)
-    logger.debug(f"EPISODE END: {episode_id}")
-    logger.debug(f"Result: {result}, Score: {score}, Steps: {steps}")
-    logger.debug("-" * 60)
+    logger.debug("")
+    logger.debug(f"EPISODE END: {episode_id} | {result} | Score: {score} | Steps: {steps}")
+    logger.debug("=" * 80)
 
 
 def log_step_interaction(
@@ -151,59 +147,88 @@ def log_step_interaction(
 ) -> None:
     """Log step interaction for debug mode.
 
-    Args:
-        step: Step number.
-        user_prompt: User prompt sent to LLM (full content).
-        response: LLM response (full content).
-        action: Parsed action.
-        observation: Environment observation.
-        system_prompt: System prompt (only logged on first step).
+    Clean format showing only essential information:
+    - System prompt (only on first step)
+    - User prompt (full content)
+    - LLM response (full content)
+    - Parsed action and observation
     """
     logger = logging.getLogger(__name__)
 
     logger.debug("")
-    logger.debug("=" * 80)
-    logger.debug(f"STEP {step}")
-    logger.debug("=" * 80)
+    logger.debug(f">>> AGENT STEP {step}")
 
     # Log system prompt only on first step
     if step == 1 and system_prompt:
         logger.debug("")
-        logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
+        logger.debug("[SYSTEM PROMPT]")
         logger.debug(system_prompt)
-        logger.debug("-" * 80)
 
-    # Log full user prompt (contains history)
+    # Log full user prompt
     logger.debug("")
-    logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
+    logger.debug("[USER PROMPT]")
     logger.debug(user_prompt)
-    logger.debug("-" * 80)
 
     # Log full LLM response
     logger.debug("")
-    logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+    logger.debug("[LLM RESPONSE]")
     logger.debug(response)
-    logger.debug("-" * 80)
 
     # Log parsed action and observation
     logger.debug("")
-    logger.debug(f"PARSED ACTION: {action}")
-    logger.debug(f"OBSERVATION: {observation}")
-    logger.debug("=" * 80)
+    logger.debug(f"[PARSED] Action: {action}")
+    logger.debug(f"[RESULT] {observation}")
+    logger.debug("")
+
+
+def log_memory_extraction(
+    task_id: str,
+    system_prompt: str,
+    user_prompt: str,
+    response: str,
+    success: bool = True,
+    num_items: int = 0,
+) -> None:
+    """Log memory extraction interaction for debug mode.
+
+    Args:
+        task_id: Task identifier.
+        system_prompt: System prompt for extraction.
+        user_prompt: User prompt (extraction request).
+        response: LLM response.
+        success: Whether extraction was successful.
+        num_items: Number of items extracted.
+    """
+    logger = logging.getLogger(__name__)
+
+    logger.debug("")
+    logger.debug(f">>> MEMORY EXTRACTION: {task_id}")
+
+    logger.debug("")
+    logger.debug("[SYSTEM PROMPT]")
+    logger.debug(system_prompt)
+
+    logger.debug("")
+    logger.debug("[USER PROMPT]")
+    logger.debug(user_prompt)
+
+    logger.debug("")
+    logger.debug("[LLM RESPONSE]")
+    logger.debug(response)
+
+    if success:
+        logger.debug("")
+        logger.debug(f"[RESULT] Extracted {num_items} memory items")
+    logger.debug("")
 
 
 def log_system_prompt(system_prompt: str) -> None:
-    """Log system prompt for debug mode.
-
-    Args:
-        system_prompt: System prompt content.
-    """
+    """Log system prompt for debug mode."""
     logger = logging.getLogger(__name__)
-    logger.debug("=" * 60)
-    logger.debug("SYSTEM PROMPT")
-    logger.debug("=" * 60)
+    logger.debug("")
+    logger.debug(">>> SYSTEM PROMPT")
     logger.debug(system_prompt)
-    logger.debug("=" * 60)
+    logger.debug("")
 
 
 def format_progress(
@@ -212,17 +237,7 @@ def format_progress(
     successes: int,
     success_steps: int,
 ) -> str:
-    """Format progress string for display.
-
-    Args:
-        completed: Number of completed episodes.
-        total: Total number of episodes.
-        successes: Number of successful episodes.
-        success_steps: Total steps in successful episodes.
-
-    Returns:
-        Formatted progress string.
-    """
+    """Format progress string for display."""
     rate = successes / completed if completed > 0 else 0
     avg_steps = success_steps / successes if successes > 0 else 0
 
@@ -240,17 +255,7 @@ def format_episode_result(
     score: float,
     steps: int,
 ) -> str:
-    """Format episode result for display.
-
-    Args:
-        episode_id: Episode identifier.
-        success: Whether episode was successful.
-        score: Final score.
-        steps: Number of steps.
-
-    Returns:
-        Formatted result string.
-    """
+    """Format episode result for display."""
     if success:
         result_str = Colors.success("✓")
     else:

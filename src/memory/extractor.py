@@ -161,41 +161,41 @@ class MemoryExtractor:
                 is_success=is_success,
             )
 
-            # Log extraction prompt for debug
-            logger.debug("")
-            logger.debug("=" * 80)
-            logger.debug(f"MEMORY EXTRACTION: {task_id}")
-            logger.debug("=" * 80)
-            logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
-            logger.debug(system_prompt)
-            logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
-            logger.debug(prompt)
-            logger.debug("-" * 80)
-
             # Call LLM
             response = self.llm_client.chat_simple(
                 system_prompt=system_prompt,
                 user_prompt=prompt,
             )
 
-            # Log LLM response for debug
-            logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+            # Log extraction interaction for debug
+            logger.debug("")
+            logger.debug(f">>> MEMORY EXTRACTION: {task_id}")
+            logger.debug("")
+            logger.debug("[SYSTEM PROMPT]")
+            logger.debug(system_prompt)
+            logger.debug("")
+            logger.debug("[USER PROMPT]")
+            logger.debug(prompt)
+            logger.debug("")
+            logger.debug("[LLM RESPONSE]")
             logger.debug(response)
-            logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)
 
             if items is None:
+                logger.debug("")
+                logger.debug(f"[RESULT] Failed to parse JSON from response")
                 logger.warning(
                     f"Failed to parse extraction response for task {task_id}")
-                logger.debug(f"Raw response: {response}")
                 return None
 
             # Validate and convert to MemoryEntry
             memory_items = _validate_memory_items(items)
 
             if not memory_items:
+                logger.debug("")
+                logger.debug(f"[RESULT] No valid memory items extracted")
                 logger.warning(
                     f"No valid memory items extracted for task {task_id}")
                 return None
@@ -211,10 +211,9 @@ class MemoryExtractor:
                 memory_items=memory_items,
             )
 
-            logger.debug(
-                f"Extracted {len(memory_items)} memory items for task {task_id} "
-                f"({'success' if is_success else 'failure'})"
-            )
+            logger.debug("")
+            logger.debug(f"[RESULT] Extracted {len(memory_items)} memory items")
+            logger.debug("")
 
             return memory
 
@@ -257,40 +256,40 @@ class MemoryExtractor:
                 trajectories=trajectories,
             )
 
-            # Log extraction prompt for debug
-            logger.debug("")
-            logger.debug("=" * 80)
-            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION: {task_id}")
-            logger.debug("=" * 80)
-            logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
-            logger.debug(system_prompt)
-            logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
-            logger.debug(prompt)
-            logger.debug("-" * 80)
-
             # Call LLM
             response = self.llm_client.chat_simple(
                 system_prompt=system_prompt,
                 user_prompt=prompt,
             )
 
-            # Log LLM response for debug
-            logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+            # Log extraction interaction for debug
+            logger.debug("")
+            logger.debug(f">>> CONTRASTIVE MEMORY EXTRACTION: {task_id}")
+            logger.debug("")
+            logger.debug("[SYSTEM PROMPT]")
+            logger.debug(system_prompt)
+            logger.debug("")
+            logger.debug("[USER PROMPT]")
+            logger.debug(prompt)
+            logger.debug("")
+            logger.debug("[LLM RESPONSE]")
             logger.debug(response)
-            logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)
 
             if items is None:
+                logger.debug("")
+                logger.debug(f"[RESULT] Failed to parse JSON from response")
                 logger.warning(
                     f"Failed to parse contrastive extraction response for task {task_id}")
-                logger.debug(f"Raw response: {response}")
                 return None
 
             memory_items = _validate_memory_items(items)
 
             if not memory_items:
+                logger.debug("")
+                logger.debug(f"[RESULT] No valid memory items extracted")
                 logger.warning(
                     f"No valid memory items from contrastive extraction for task {task_id}")
                 return None
@@ -311,10 +310,9 @@ class MemoryExtractor:
                 memory_items=memory_items,
             )
 
-            logger.debug(
-                f"Contrastive extraction: {len(memory_items)} items from "
-                f"{len(trajectories)} trajectories for task {task_id}"
-            )
+            logger.debug("")
+            logger.debug(f"[RESULT] Extracted {len(memory_items)} items from {len(trajectories)} trajectories")
+            logger.debug("")
 
             return memory
 
