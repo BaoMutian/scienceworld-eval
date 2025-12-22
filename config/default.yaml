@@ -17,7 +17,7 @@ retry:
 
 # Test Configuration
 test:
-  num_episodes: 1 # Number of variations to test per task (1 episode each)
+  num_episodes: 3 # Number of variations to test per task (1 episode each)
   task_ids: ["1-1"] # null = all tasks, or list like ["1-1", "4-1", "4-2"]
   split: "dev" # train/dev/test
   seed: 42

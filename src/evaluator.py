@@ -10,8 +10,8 @@ from tqdm import tqdm
 from .config import Config
 from .llm_client import LLMClient
 from .environment import (
-    ScienceWorldEnv, 
-    TASK_MAPPING, 
+    ScienceWorldEnv,
+    TASK_MAPPING,
     get_task_name_from_id,
     get_episode_id,
 )
@@ -56,7 +56,8 @@ class Evaluator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.run_id = generate_run_id(config)
-        self.checkpoint_path = self.output_dir / f"{self.run_id}_checkpoint.json"
+        self.checkpoint_path = self.output_dir / \
+            f"{self.run_id}_checkpoint.json"
         self.results_path = self.output_dir / f"{self.run_id}_results.json"
         self.debug_log_path = self.output_dir / f"{self.run_id}_debug.log"
 
@@ -70,8 +71,13 @@ class Evaluator:
         self._init_memory()
 
     def _init_memory(self) -> None:
-        """Initialize memory components if enabled."""
-        if not self.config.memory.enabled:
+        """Initialize memory components if needed.
+        
+        Only initializes components when mode is not 'baseline'.
+        baseline mode = no memory system at all.
+        """
+        if not self.config.memory.needs_memory_system():
+            logger.debug(f"Memory mode is '{self.config.memory.mode}', skipping initialization")
             return
 
         try:
@@ -151,7 +157,8 @@ class Evaluator:
                 self._success_steps += result.steps
 
         if self._completed_episode_ids:
-            print(f"{Colors.info('Checkpoint found:')} {len(self._completed_episode_ids)} episodes completed")
+            print(
+                f"{Colors.info('Checkpoint found:')} {len(self._completed_episode_ids)} episodes completed")
 
     def _save_checkpoint(self) -> None:
         """Save current checkpoint."""
@@ -171,37 +178,40 @@ class Evaluator:
 
     def get_task_schedule(self) -> List[Dict[str, Any]]:
         """Get list of (task_id, task_name, variation, episode) tuples to run.
-        
+
         Returns:
             List of dicts with task info.
         """
         env = ScienceWorldEnv(self.config.test.simplifications)
-        
+
         # Get task IDs to run
         if self.config.test.task_ids:
             task_ids = self.config.test.task_ids
         else:
             task_ids = list(TASK_MAPPING.keys())
-        
+
         schedule = []
-        
+
         for task_id in task_ids:
             task_name = get_task_name_from_id(task_id)
             if task_name == "unknown":
                 logger.warning(f"Unknown task ID: {task_id}, skipping")
                 continue
-            
+
             # Get variations for this task
             try:
-                variations = env.get_variations(task_name, self.config.test.split)
+                variations = env.get_variations(
+                    task_name, self.config.test.split)
             except Exception as e:
-                logger.warning(f"Failed to get variations for {task_name}: {e}")
+                logger.warning(
+                    f"Failed to get variations for {task_name}: {e}")
                 continue
-            
+
             if not variations:
-                logger.warning(f"No variations found for {task_name} in {self.config.test.split}")
+                logger.warning(
+                    f"No variations found for {task_name} in {self.config.test.split}")
                 continue
-            
+
             # Shuffle variations based on seed (use deterministic hash)
             # Note: Python's hash() is non-deterministic for strings across runs
             # Use a simple deterministic hash instead
@@ -209,11 +219,11 @@ class Evaluator:
             random.seed(task_seed)
             shuffled_vars = variations.copy()
             random.shuffle(shuffled_vars)
-            
+
             # Limit to num_episodes variations (1 episode per variation for efficiency)
             # This gives num_episodes total per task
             selected_vars = shuffled_vars[:self.config.test.num_episodes]
-            
+
             for var_idx, variation in enumerate(selected_vars):
                 schedule.append({
                     "task_id": task_id,
@@ -222,22 +232,22 @@ class Evaluator:
                     "episode": 0,  # Single episode per variation
                     "episode_id": get_episode_id(task_id, variation, 0),
                 })
-        
+
         env.close()
-        
+
         # Shuffle schedule with seed for reproducibility
         random.seed(self.config.test.seed)
         random.shuffle(schedule)
-        
+
         return schedule
 
     def _retrieve_memories(self, task_name: str, goal: str) -> list:
         """Retrieve relevant memories for a task.
-        
+
         Args:
             task_name: Name of the task.
             goal: Task goal description.
-            
+
         Returns:
             List of RetrievedMemory objects.
         """
@@ -247,16 +257,17 @@ class Evaluator:
         try:
             # Retrieve memories based on goal similarity
             retrieved = self.memory_retriever.retrieve(goal)
-            
+
             # Display retrieval info
             if retrieved:
                 for rm in retrieved:
-                    result_tag = Colors.success("✓") if rm.is_success else Colors.warning("✗")
+                    result_tag = Colors.success(
+                        "✓") if rm.is_success else Colors.warning("✗")
                     tqdm.write(
                         f"  {Colors.info('📚 Memory:')} {result_tag} "
                         f"sim={rm.similarity:.2f} | {rm.memory_items[0].title if rm.memory_items else 'No title'}"
                     )
-            
+
             if self.config.runtime.debug and retrieved:
                 logger.debug(
                     f"Retrieved {len(retrieved)} memories for goal: {goal[:50]}..."
@@ -270,7 +281,7 @@ class Evaluator:
 
     def _extract_and_store_memory(self, result: EpisodeResult) -> None:
         """Extract memory from episode result and store it.
-        
+
         Args:
             result: Episode result to extract memory from.
         """
@@ -281,7 +292,8 @@ class Evaluator:
             # Build trajectory from result
             trajectory = []
             for i, action in enumerate(result.actions):
-                obs = result.observations[i + 1] if i + 1 < len(result.observations) else ""
+                obs = result.observations[i + 1] if i + \
+                    1 < len(result.observations) else ""
                 trajectory.append({
                     "action": action,
                     "observation": obs,
@@ -299,7 +311,8 @@ class Evaluator:
             if memory:
                 self.memory_store.add(memory)
                 # Display extraction info
-                result_tag = Colors.success("✓") if memory.is_success else Colors.warning("✗")
+                result_tag = Colors.success(
+                    "✓") if memory.is_success else Colors.warning("✗")
                 item_titles = [item.title for item in memory.memory_items[:2]]
                 titles_str = ", ".join(item_titles)
                 if len(memory.memory_items) > 2:
@@ -308,7 +321,7 @@ class Evaluator:
                     f"  {Colors.info('💡 Extracted:')} {result_tag} "
                     f"{len(memory.memory_items)} items | {titles_str}"
                 )
-                
+
                 if self.config.runtime.debug:
                     logger.debug(
                         f"Extracted and stored memory {memory.memory_id} "
@@ -317,7 +330,8 @@ class Evaluator:
 
         except Exception as e:
             tqdm.write(f"  {Colors.error('⚠ Extract failed:')} {str(e)[:50]}")
-            logger.error(f"Memory extraction failed for {result.episode_id}: {e}")
+            logger.error(
+                f"Memory extraction failed for {result.episode_id}: {e}")
             # Don't propagate - extraction failure shouldn't stop evaluation
 
     def _run_episode(self, task_info: Dict[str, Any]) -> EpisodeResult:
@@ -325,20 +339,21 @@ class Evaluator:
         task_name = task_info["task_name"]
         variation = task_info["variation"]
         episode = task_info["episode"]
-        
+
         env = None
         try:
             # Create single environment for the entire episode
             env = ScienceWorldEnv(self.config.test.simplifications)
             obs, info = env.reset(task_name, variation)
             goal = extract_task_description(obs, info.get("taskDesc", ""))
-            
+
             # Retrieve relevant memories
-            retrieved_memories = self._retrieve_memories(task_name, goal) if goal else []
-            
+            retrieved_memories = self._retrieve_memories(
+                task_name, goal) if goal else []
+
             # Create agent and run
             from .agent import ReActAgent, EpisodeResult as ER
-            
+
             agent = ReActAgent(
                 llm_client=self.llm_client,
                 use_few_shot=self.config.prompt.use_few_shot,
@@ -347,21 +362,22 @@ class Evaluator:
                 retrieved_memories=retrieved_memories,
                 task_name=task_name,
             )
-            
+
             result = agent.run_episode(
                 env, obs, info,
                 max_steps=self.config.test.max_steps,
                 episode_num=episode
             )
-            
+
             # Extract and store memory if enabled
             if self.config.memory.should_extract():
                 self._extract_and_store_memory(result)
-            
+
             return result
-            
+
         except Exception as e:
-            logger.error(f"Error running episode {task_info['episode_id']}: {e}")
+            logger.error(
+                f"Error running episode {task_info['episode_id']}: {e}")
             from .agent import EpisodeResult as ER
             return ER(
                 episode_id=task_info["episode_id"],
@@ -387,26 +403,30 @@ class Evaluator:
         print(Colors.highlight("=" * 60))
         print(f"  Model:    {Colors.info(self.config.llm.model)}")
         print(f"  Split:    {Colors.info(self.config.test.split)}")
-        print(f"  Tasks:    {Colors.info(str(self.config.test.task_ids or 'all'))}")
-        print(f"  Variations: {Colors.info(str(self.config.test.num_episodes))} per task")
+        print(
+            f"  Tasks:    {Colors.info(str(self.config.test.task_ids or 'all'))}")
+        print(
+            f"  Variations: {Colors.info(str(self.config.test.num_episodes))} per task")
         print(f"  Simplify: {Colors.info(self.config.test.simplifications)}")
         print(f"  Run ID:   {Colors.dim(self.run_id)}")
-        
+
         # Print memory info
         if self.config.memory.enabled:
             print(Colors.dim("-" * 40))
             print(f"  Memory:   {Colors.info(self.config.memory.mode)}")
             if self.memory_store:
                 stats = self.memory_store.get_stats()
-                print(f"  Bank:     {Colors.info(str(stats['total_memories']))} memories")
+                print(
+                    f"  Bank:     {Colors.info(str(stats['total_memories']))} memories")
             else:
                 print(f"  Bank:     {Colors.warning('Not initialized')}")
-        
+
         print(Colors.highlight("=" * 60))
         print()
 
         if self.config.runtime.debug:
-            log_system_prompt(get_system_prompt(self.config.prompt.use_few_shot))
+            log_system_prompt(get_system_prompt(
+                self.config.prompt.use_few_shot))
 
         self._load_checkpoint()
 
@@ -477,7 +497,8 @@ class Evaluator:
         self._save_checkpoint()
 
         timestamp = get_timestamp().replace(":", "-")
-        final_results_path = self.output_dir / f"{self.run_id}_{timestamp}_results.json"
+        final_results_path = self.output_dir / \
+            f"{self.run_id}_{timestamp}_results.json"
 
         save_results(
             results=self._results,
@@ -512,8 +533,10 @@ class Evaluator:
             else Colors.BRIGHT_RED
         )
         print(f"  Total episodes:  {summary['total_episodes']}")
-        print(f"  Successes:       {Colors.success(str(summary['successes']))}")
-        print(f"  Success rate:    {rate_color}{summary['success_rate']:.2%}{Colors.RESET}")
+        print(
+            f"  Successes:       {Colors.success(str(summary['successes']))}")
+        print(
+            f"  Success rate:    {rate_color}{summary['success_rate']:.2%}{Colors.RESET}")
         print(f"  Avg score:       {summary['avg_score']:.1f}")
         print(f"  Avg steps:       {summary['avg_steps']:.1f}")
         print(f"  Success avg:     {summary['success_avg_steps']:.1f}")
@@ -550,7 +573,8 @@ class Evaluator:
         print(f"  Results: {Colors.info(str(final_results_path))}")
         print(f"  Checkpoint: {Colors.dim(str(self.checkpoint_path))}")
         if self.memory_store:
-            print(f"  Memory bank: {Colors.dim(str(self.memory_store.memories_path))}")
+            print(
+                f"  Memory bank: {Colors.dim(str(self.memory_store.memories_path))}")
         print(Colors.highlight("=" * 60))
         print()
 
@@ -558,4 +582,3 @@ class Evaluator:
 def run_evaluation(config: Config) -> None:
     """Run evaluation with the given configuration."""
     Evaluator(config).run()
-

@@ -91,6 +91,10 @@ class MemoryConfig:
         """Check if extraction is enabled."""
         return self.enabled and self.mode == "retrieve_and_extract"
 
+    def needs_memory_system(self) -> bool:
+        """Check if memory system components need to be initialized."""
+        return self.enabled and self.mode != "baseline"
+
 
 @dataclass
 class Config:
@@ -190,15 +194,9 @@ class Config:
 
     def _is_valid_task_id(self, task_id: str) -> bool:
         """Check if task_id is in valid format (e.g., '1-1', '10-2')."""
-        parts = task_id.split("-")
-        if len(parts) != 2:
-            return False
-        try:
-            topic = int(parts[0])
-            subtask = int(parts[1])
-            return 1 <= topic <= 10 and 1 <= subtask <= 4
-        except ValueError:
-            return False
+        # Valid task IDs based on ScienceWorld's 30 tasks
+        from .environment import TASK_MAPPING
+        return task_id in TASK_MAPPING
 
     def to_dict(self) -> dict:
         """Convert configuration to dictionary."""
