@@ -31,7 +31,8 @@ class RetryConfig:
 class TestConfig:
     """Test configuration."""
     num_episodes: int = 5  # episodes per task variation
-    task_ids: Optional[List[str]] = None  # e.g., ["1-1", "4-1"] or None for all
+    # e.g., ["1-1", "4-1"] or None for all
+    task_ids: Optional[List[str]] = None
     split: str = "dev"  # train/dev/test
     seed: int = 42
     max_steps: int = 50
@@ -143,7 +144,8 @@ class Config:
     def validate(self) -> None:
         """Validate configuration."""
         # Check API key
-        api_key = self.llm.api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("OPENAI_API_KEY", "")
+        api_key = self.llm.api_key or os.environ.get(
+            "OPENROUTER_API_KEY", "") or os.environ.get("OPENAI_API_KEY", "")
         if not api_key:
             raise ValueError(
                 "API key not set. Set it in config or OPENROUTER_API_KEY/OPENAI_API_KEY environment variable."
@@ -153,7 +155,8 @@ class Config:
         # Check split
         valid_splits = ["train", "dev", "test"]
         if self.test.split not in valid_splits:
-            raise ValueError(f"Invalid split: {self.test.split}. Must be one of {valid_splits}")
+            raise ValueError(
+                f"Invalid split: {self.test.split}. Must be one of {valid_splits}")
 
         # Check task_ids format if provided
         if self.test.task_ids is not None:
@@ -166,7 +169,7 @@ class Config:
 
         # Validate simplifications
         valid_simplifications = {
-            "easy", "teleportAction", "openDoors", 
+            "easy", "teleportAction", "openDoors",
             "selfWateringFlowerPots", "noElectricalAction", "openContainers"
         }
         if self.test.simplifications:
@@ -181,7 +184,8 @@ class Config:
         Path(self.runtime.output_dir).mkdir(parents=True, exist_ok=True)
 
         # Validate memory configuration
-        valid_memory_modes = ["baseline", "retrieve_only", "retrieve_and_extract"]
+        valid_memory_modes = ["baseline",
+                              "retrieve_only", "retrieve_and_extract"]
         if self.memory.mode not in valid_memory_modes:
             raise ValueError(
                 f"Invalid memory mode: {self.memory.mode}. "
@@ -270,4 +274,3 @@ def load_config(config_path: Optional[str] = None) -> Config:
 
     config.validate()
     return config
-

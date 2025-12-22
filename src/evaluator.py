@@ -72,12 +72,13 @@ class Evaluator:
 
     def _init_memory(self) -> None:
         """Initialize memory components if needed.
-        
+
         Only initializes components when mode is not 'baseline'.
         baseline mode = no memory system at all.
         """
         if not self.config.memory.needs_memory_system():
-            logger.debug(f"Memory mode is '{self.config.memory.mode}', skipping initialization")
+            logger.debug(
+                f"Memory mode is '{self.config.memory.mode}', skipping initialization")
             return
 
         try:
