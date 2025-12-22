@@ -98,12 +98,16 @@ def setup_logging(debug: bool = False, log_file: Optional[str] = None) -> None:
         force=True,
     )
     
-    # Suppress noisy loggers
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("openai").setLevel(logging.WARNING)
-    logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+    # Suppress noisy loggers - only show errors
+    logging.getLogger("httpx").setLevel(logging.ERROR)
+    logging.getLogger("openai").setLevel(logging.ERROR)
+    logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
     logging.getLogger("py4j").setLevel(logging.ERROR)
-    logging.getLogger("scienceworld").setLevel(logging.WARNING)
+    logging.getLogger("py4j.java_gateway").setLevel(logging.ERROR)
+    logging.getLogger("scienceworld").setLevel(logging.ERROR)
+    logging.getLogger("scienceworld.scienceworld").setLevel(logging.ERROR)
+    logging.getLogger("tenacity").setLevel(logging.ERROR)
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
 def log_episode_start(episode_id: str, task_desc: str) -> None:
@@ -143,22 +147,49 @@ def log_step_interaction(
     response: str,
     action: str,
     observation: str,
+    system_prompt: str = "",
 ) -> None:
     """Log step interaction for debug mode.
     
     Args:
         step: Step number.
-        user_prompt: User prompt sent to LLM.
-        response: LLM response.
+        user_prompt: User prompt sent to LLM (full content).
+        response: LLM response (full content).
         action: Parsed action.
         observation: Environment observation.
+        system_prompt: System prompt (only logged on first step).
     """
     logger = logging.getLogger(__name__)
-    logger.debug(f"\n--- Step {step} ---")
-    logger.debug(f"USER PROMPT:\n{user_prompt[:500]}...")
-    logger.debug(f"LLM RESPONSE:\n{response}")
+    
+    logger.debug("")
+    logger.debug("=" * 80)
+    logger.debug(f"STEP {step}")
+    logger.debug("=" * 80)
+    
+    # Log system prompt only on first step
+    if step == 1 and system_prompt:
+        logger.debug("")
+        logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
+        logger.debug(system_prompt)
+        logger.debug("-" * 80)
+    
+    # Log full user prompt (contains history)
+    logger.debug("")
+    logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
+    logger.debug(user_prompt)
+    logger.debug("-" * 80)
+    
+    # Log full LLM response
+    logger.debug("")
+    logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+    logger.debug(response)
+    logger.debug("-" * 80)
+    
+    # Log parsed action and observation
+    logger.debug("")
     logger.debug(f"PARSED ACTION: {action}")
     logger.debug(f"OBSERVATION: {observation}")
+    logger.debug("=" * 80)
 
 
 def log_system_prompt(system_prompt: str) -> None:

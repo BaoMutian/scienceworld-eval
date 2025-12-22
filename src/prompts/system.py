@@ -24,14 +24,14 @@ This environment simulates a household with multiple rooms (kitchen, outside, wo
 - Physics (inclined planes, friction)
 
 ==================================================
-AVAILABLE COMMANDS (25 actions)
+AVAILABLE COMMANDS
 ==================================================
 Navigation:
   - look around                    : Describe the current room
   - look at [object]               : Describe an object in detail
   - look in [object]               : Describe a container's contents
-  - go to [location]               : Move to a new location (e.g., "go to kitchen")
-  - teleport to [location]         : Teleport to a specific room (if enabled)
+  - go to [location]               : Move to a new location
+  - teleport to [location]         : Teleport to a specific location (if enabled)
 
 Object Manipulation:
   - pick up [object]               : Move an object to the inventory
@@ -62,7 +62,7 @@ Other Actions:
   - task                           : Describe current task
 
 ==================================================
-OUTPUT FORMAT (REQUIRED)
+OUTPUT FORMAT
 ==================================================
 You MUST respond in EXACTLY this format:
 
@@ -73,8 +73,7 @@ Action: <exact command from the list above>
 IMPORTANT:
 - Always include both "Think:" and "Action:" sections
 - The action must be a valid command with exact object names
-- You CAN carry multiple objects at once
-- Phase changes may require time to complete"""
+- You CAN carry multiple objects at once"""
 
 # System prompt with few-shot examples
 SYSTEM_PROMPT_WITH_EXAMPLES = _SYSTEM_PROMPT_BASE + """
@@ -271,6 +270,7 @@ def build_user_prompt(
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
     parts.append("  - Use 'wait' command if a process needs time to complete")
+    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location")
     parts.append("")
 
     # Add recent history

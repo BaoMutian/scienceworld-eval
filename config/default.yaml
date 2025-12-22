@@ -13,12 +13,12 @@ llm:
 retry:
   max_retries: 3
   retry_interval: 1.0
-  max_retry_interval: 30.0
+  max_retry_interval: 8.0
 
 # Test Configuration
 test:
-  num_episodes: 5 # Number of variations to test per task (1 episode each)
-  task_ids: null # null = all tasks, or list like ["1-1", "4-1", "4-2"]
+  num_episodes: 1 # Number of variations to test per task (1 episode each)
+  task_ids: ["1-1"] # null = all tasks, or list like ["1-1", "4-1", "4-2"]
   split: "dev" # train/dev/test
   seed: 42
   max_steps: 30 # Maximum steps per episode

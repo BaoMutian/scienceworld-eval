@@ -205,7 +205,13 @@ class ReActAgent:
                 if self.debug:
                     # Log full prompt/response to file only
                     log_step_interaction(
-                        step + 1, user_prompt, response, action, obs)
+                        step=step + 1,
+                        user_prompt=user_prompt,
+                        response=response,
+                        action=action,
+                        observation=obs,
+                        system_prompt=self.system_prompt if step == 0 else "",
+                    )
                     # Print concise info to terminal
                     obs_preview = obs.replace('\n', ' ')[:80]
                     print(f"  [{step + 1:2d}] {Colors.info(action)}")
