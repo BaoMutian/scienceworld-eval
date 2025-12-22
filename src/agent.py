@@ -169,6 +169,7 @@ class ReActAgent:
         )
 
         history: List[Tuple[str, str]] = []
+        initial_observation = initial_obs  # Save initial observation
         current_obs = initial_obs
         result.observations.append(current_obs)
 
@@ -196,6 +197,7 @@ class ReActAgent:
                     task_description=task_desc,
                     history=history,
                     current_observation=current_obs,
+                    initial_observation=initial_observation,
                     history_length=self.history_length,
                 )
 

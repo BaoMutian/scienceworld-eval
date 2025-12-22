@@ -257,14 +257,16 @@ def build_user_prompt(
     task_description: str,
     history: List[Tuple[str, str]],
     current_observation: str,
+    initial_observation: str = "",
     history_length: int = 20,
 ) -> str:
     """Build user prompt with task, history, and current observation.
 
     Args:
         task_description: The task goal description.
-        history: List of (action, observation) tuples.
-        current_observation: The most recent observation.
+        history: List of (action, observation) tuples from previous steps.
+        current_observation: The most recent observation (after last action).
+        initial_observation: The initial observation before any action.
         history_length: Number of recent history entries to include.
 
     Returns:
@@ -282,28 +284,42 @@ def build_user_prompt(
     parts.append("  - Type 'inventory' to check what you're carrying")
     parts.append("  - Type 'look around' to observe your surroundings")
     parts.append("  - Use 'wait' command if a process needs time to complete")
-    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location when lost")
+    parts.append("  - Use 'teleport' command (if enabled) to quickly move to a specific location")
     parts.append("")
 
-    # Add recent history
+    # Add interaction history
     parts.append("==================================================")
-    parts.append("RECENT HISTORY")
+    parts.append("INTERACTION HISTORY")
     parts.append("==================================================")
 
-    recent_history = history[-history_length:] if len(
-        history) > history_length else history
+    # Include initial observation first
+    if initial_observation:
+        parts.append(f"Initial Observation: {initial_observation}")
+        parts.append("")
 
-    if recent_history:
-        for action, observation in recent_history:
+    # Get recent history (excluding the last observation since it's current_observation)
+    # history format: [(action1, obs1), (action2, obs2), ...]
+    # obs_i is the observation AFTER action_i
+    # current_observation = observation after the most recent action
+    
+    if history:
+        # Limit history length
+        recent_history = history[-history_length:] if len(history) > history_length else history
+        
+        # Show all actions, but only observations up to second-to-last
+        # (last observation is shown as current_observation)
+        for i, (action, observation) in enumerate(recent_history):
             parts.append(f"Action: {action}")
-            # Truncate long observations
-            obs_display = observation[:500] + \
-                "..." if len(observation) > 500 else observation
-            parts.append(f"Observation: {obs_display}")
-            parts.append("")
-
-    # Add current observation
-    parts.append("Current Observation:")
+            # Don't show the last observation here - it will be shown as current_observation
+            if i < len(recent_history) - 1:
+                parts.append(f"Observation: {observation}")
+                parts.append("")
+    
+    # Add current observation (result of most recent action)
+    parts.append("")
+    parts.append("==================================================")
+    parts.append("CURRENT OBSERVATION")
+    parts.append("==================================================")
     parts.append(current_observation)
     parts.append("")
 
