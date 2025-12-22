@@ -9,19 +9,18 @@ llm:
   max_tokens: 1024
   timeout: 60
 
-  # Model-specific extra parameters (passed directly to OpenAI-compatible API)
-  # These are standard API parameters like top_p, presence_penalty, etc.
+  # Model-specific extra parameters (passed via extra_body to vLLM/compatible backends)
+  # These are non-standard API params that backends like vLLM support
   #
-  # Note for Qwen3 (https://huggingface.co/Qwen/Qwen3-8B):
-  #   - enable_thinking is a vLLM SERVER startup param, NOT an API param
-  #   - Start vLLM with: vllm serve Qwen/Qwen3-8B --enable-reasoning --reasoning-parser deepseek_r1
-  #   - Or use /think and /no_think in user messages to toggle thinking mode
-  #   - Thinking mode: temperature=0.6, top_p=0.95 (avoid greedy decoding!)
-  #   - Non-thinking mode: temperature=0.7, top_p=0.8
+  # Qwen3 with vLLM (https://huggingface.co/Qwen/Qwen3-8B):
+  #   Start vLLM: vllm serve Qwen/Qwen3-8B --enable-reasoning --reasoning-parser deepseek_r1
+  #   enable_thinking: true/false  # Toggle thinking mode per request
+  #   Thinking mode: use temperature=0.6, top_p=0.95 (avoid greedy decoding!)
+  #   Non-thinking mode: use temperature=0.7, top_p=0.8
   #
   extra_params: {}
   # extra_params:
-  #   top_p: 0.95
+  #   enable_thinking: true
 
 # Retry Configuration
 retry:

@@ -59,9 +59,10 @@ class LLMClient:
                 "temperature": self.config.temperature,
                 "max_tokens": self.config.max_tokens,
             }
-            # Add model-specific extra parameters (e.g., enable_thinking for Qwen3)
+            # Add model-specific extra parameters via extra_body
+            # Required for non-standard API params like vLLM's enable_thinking for Qwen3
             if self.config.extra_params:
-                request_params.update(self.config.extra_params)
+                request_params["extra_body"] = self.config.extra_params
 
             response = self.client.chat.completions.create(**request_params)
             return response.choices[0].message.content
@@ -103,4 +104,3 @@ class LLMClient:
             {"role": "user", "content": user_prompt},
         ]
         return self.chat(messages)
-
