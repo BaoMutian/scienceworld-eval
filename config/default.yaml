@@ -10,17 +10,11 @@ llm:
   timeout: 60
 
   # Model-specific extra parameters (passed directly to API)
-  # Examples for different models:
   #
   # Qwen3 series (https://huggingface.co/Qwen/Qwen3-8B):
   #   enable_thinking: true   # Enable thinking mode for complex reasoning
   #   # Recommended: temperature=0.6, top_p=0.95 for thinking mode
   #   # Recommended: temperature=0.7, top_p=0.8 for non-thinking mode
-  #
-  # OpenAI models:
-  #   top_p: 0.9
-  #   presence_penalty: 0.0
-  #   frequency_penalty: 0.0
   #
   extra_params: {}
   # extra_params:
