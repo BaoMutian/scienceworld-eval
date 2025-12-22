@@ -2,9 +2,38 @@
 
 from typing import List, Dict
 
+# ScienceWorld environment context for extraction prompts
+ENVIRONMENT_CONTEXT = """## ScienceWorld Environment Background
+
+ScienceWorld is a text-based interactive environment for testing scientific reasoning abilities.
+The agent navigates rooms, manipulates objects, and performs science experiments through text commands.
+
+### Key Environment Features:
+- **Navigation**: Rooms connected by doors/portals (kitchen, living room, outside, etc.)
+- **Objects**: Various containers, substances, tools, and living things
+- **State Changes**: Objects can change state (solid/liquid/gas), temperature, location
+- **Scientific Tasks**: Include melting, boiling, freezing, mixing, growing plants, electrical circuits, etc.
+
+### Available Action Types:
+- Movement: go to [location], teleport to [location]
+- Observation: look around, look at [object], look in [container], examine [object]
+- Manipulation: pick up [object], put [object] in [container], open/close [container]
+- Interaction: activate/deactivate [device], use [tool] on [object], connect/disconnect [objects]
+- Task-specific: focus on [object], pour [liquid] in [container], mix [container], eat [food]
+- Waiting: wait, wait1 (for time-dependent processes like heating, growing)
+
+### Common Challenges:
+- Finding objects requires systematic room exploration
+- Temperature changes require heat sources (stove, fireplace) or cooling (freezer, outside)
+- Many tasks require specific sequences (e.g., focus -> action -> wait)
+- Electrical tasks need proper circuit connections
+
+"""
+
 # Prompt for extracting strategies from successful trajectories
 EXTRACTION_PROMPT_SUCCESS = """You are an expert at analyzing science experiment trajectories and extracting reusable reasoning strategies.
 
+{environment_context}
 ## Task Context
 - Task Type: {task_type}
 - Task Goal: {goal}
@@ -18,12 +47,13 @@ Analyze this SUCCESSFUL trajectory and extract 1-3 reusable strategies that cont
 For each strategy, provide:
 1. **title**: A short, descriptive name (e.g., "Heat Source Selection", "Systematic Object Search")
 2. **description**: A one-sentence summary of when this strategy applies
-3. **content**: Detailed actionable insight on the technique or logic
+3. **content**: Detailed actionable insight including specific commands or patterns that work
 
 Focus on:
 - Key decision points that led to success
 - Efficient patterns or shortcuts discovered
 - Scientific reasoning that could apply to similar tasks
+- Specific action sequences that are reusable
 
 ## Output Format
 Return a JSON array of strategy objects:
@@ -32,7 +62,7 @@ Return a JSON array of strategy objects:
   {{
     "title": "Strategy Name",
     "description": "When to use this strategy",
-    "content": "Detailed explanation of the strategy and how to apply it"
+    "content": "Detailed explanation of the strategy and how to apply it, including specific commands"
   }}
 ]
 ```
@@ -42,6 +72,7 @@ Output ONLY the JSON array, no additional text."""
 # Prompt for extracting lessons from failed trajectories
 EXTRACTION_PROMPT_FAILURE = """You are an expert at analyzing science experiment trajectories and extracting lessons from failures.
 
+{environment_context}
 ## Task Context
 - Task Type: {task_type}
 - Task Goal: {goal}
@@ -61,6 +92,7 @@ Focus on:
 - Critical mistakes or wrong assumptions
 - Inefficient patterns that wasted steps
 - Missing scientific knowledge that caused the failure
+- What the correct approach should have been
 
 ## Output Format
 Return a JSON array of lesson objects:
@@ -69,7 +101,7 @@ Return a JSON array of lesson objects:
   {{
     "title": "Lesson Name",
     "description": "Pitfall to avoid",
-    "content": "What went wrong and how to prevent it"
+    "content": "What went wrong and how to prevent it, with correct approach"
   }}
 ]
 ```
@@ -79,6 +111,7 @@ Output ONLY the JSON array, no additional text."""
 # Prompt for contrastive extraction (MaTTS)
 EXTRACTION_PROMPT_CONTRASTIVE = """You are an expert at analyzing multiple science experiment trajectories and extracting consistent patterns.
 
+{environment_context}
 ## Task Context
 - Task Type: {task_type}
 - Task Goal: {goal}
@@ -96,6 +129,7 @@ Compare these {num_trajectories} trajectories for the SAME task and extract insi
 Extract 1-3 high-quality strategies/lessons that:
 - Are consistent across multiple attempts (not coincidental)
 - Represent general scientific reasoning patterns
+- Include specific action sequences or commands that work/fail
 - Could help with similar future tasks
 
 ## Output Format
@@ -105,7 +139,7 @@ Return a JSON array:
   {{
     "title": "Strategy/Lesson Name",
     "description": "One-sentence summary",
-    "content": "Detailed explanation derived from comparing multiple trajectories"
+    "content": "Detailed explanation derived from comparing multiple trajectories, with specific actionable advice"
   }}
 ]
 ```
@@ -126,9 +160,9 @@ def format_trajectory(trajectory: List[Dict[str, str]]) -> str:
     for i, step in enumerate(trajectory, 1):
         action = step.get("action", "")
         observation = step.get("observation", "")
-        # Truncate long observations
-        if len(observation) > 300:
-            observation = observation[:300] + "..."
+        # Truncate very long observations for extraction (full content not needed)
+        if len(observation) > 500:
+            observation = observation[:500] + "..."
         lines.append(f"Step {i}:")
         lines.append(f"  Action: {action}")
         lines.append(f"  Observation: {observation}")
@@ -177,6 +211,7 @@ def build_extraction_prompt(
     formatted_trajectory = format_trajectory(trajectory)
     
     return template.format(
+        environment_context=ENVIRONMENT_CONTEXT,
         task_type=task_type,
         goal=goal,
         trajectory=formatted_trajectory,
@@ -201,9 +236,9 @@ def build_contrastive_extraction_prompt(
     formatted_trajectories = format_multiple_trajectories(trajectories)
     
     return EXTRACTION_PROMPT_CONTRASTIVE.format(
+        environment_context=ENVIRONMENT_CONTEXT,
         task_type=task_type,
         goal=goal,
         num_trajectories=len(trajectories),
         trajectories=formatted_trajectories,
     )
-
