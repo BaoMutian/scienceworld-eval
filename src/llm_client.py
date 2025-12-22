@@ -52,12 +52,18 @@ class LLMClient:
             reraise=True,
         )
         def _chat(messages: List[Dict[str, str]]) -> str:
-            response = self.client.chat.completions.create(
-                model=self.config.model,
-                messages=messages,
-                temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens,
-            )
+            # Build request parameters
+            request_params = {
+                "model": self.config.model,
+                "messages": messages,
+                "temperature": self.config.temperature,
+                "max_tokens": self.config.max_tokens,
+            }
+            # Add model-specific extra parameters (e.g., enable_thinking for Qwen3)
+            if self.config.extra_params:
+                request_params.update(self.config.extra_params)
+
+            response = self.client.chat.completions.create(**request_params)
             return response.choices[0].message.content
 
         return _chat
