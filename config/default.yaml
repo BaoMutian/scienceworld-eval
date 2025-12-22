@@ -6,19 +6,10 @@ llm:
   api_key: "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" # Set via OPENROUTER_API_KEY or OPENAI_API_KEY env var
   model: "qwen/qwen-2.5-72b-instruct"
   temperature: 0.3
-  max_tokens: 1024
+  max_tokens: 1024  # 0 means no limit
   timeout: 60
-  # Model-specific extra parameters (passed via extra_body to vLLM/compatible backends)
-  # These are non-standard API params that backends like vLLM support
-  #
-  # Qwen3 with vLLM (https://huggingface.co/Qwen/Qwen3-8B):
-  #   enable_thinking: true
-  #   Thinking mode: use temperature=0.6, top_p=0.95
-  #   Non-thinking mode: use temperature=0.7, top_p=0.8
-  #
-  extra_params: {}
-  # extra_params:
-  #   enable_thinking: false
+  # Qwen3 thinking mode (for vLLM deployment): true/false/null(not set)
+  enable_thinking: null
 
 # Retry Configuration
 retry:

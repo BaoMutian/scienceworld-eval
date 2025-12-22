@@ -53,18 +53,22 @@ class LLMClient:
         )
         def _chat(messages: List[Dict[str, str]]) -> str:
             # Build request parameters
-            request_params = {
+            params = {
                 "model": self.config.model,
                 "messages": messages,
                 "temperature": self.config.temperature,
                 "max_tokens": self.config.max_tokens,
             }
-            # Add model-specific extra parameters via extra_body
-            # Required for non-standard API params like vLLM's enable_thinking for Qwen3
-            if self.config.extra_params:
-                request_params["extra_body"] = self.config.extra_params
 
-            response = self.client.chat.completions.create(**request_params)
+            # Add Qwen3 thinking mode if configured (for vLLM deployment)
+            if self.config.enable_thinking is not None:
+                params["extra_body"] = {
+                    "chat_template_kwargs": {
+                        "enable_thinking": self.config.enable_thinking
+                    }
+                }
+
+            response = self.client.chat.completions.create(**params)
             return response.choices[0].message.content
 
         return _chat
