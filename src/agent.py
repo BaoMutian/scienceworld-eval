@@ -114,8 +114,6 @@ class ReActAgent:
         )
         if action_match:
             action = action_match.group(1).strip().split("\n")[0].strip()
-            # Clean action: remove trailing parenthetical comments like "(this will...)"
-            action = re.sub(r'\s*\([^)]*\)\s*$', '', action).strip()
 
         # Fallback: look for action-like lines
         if not action:
@@ -123,8 +121,6 @@ class ReActAgent:
                 line_lower = line.lower().strip()
                 if any(line_lower.startswith(kw) for kw in self.ACTION_KEYWORDS):
                     action = line.strip()
-                    # Clean action
-                    action = re.sub(r'\s*\([^)]*\)\s*$', '', action).strip()
                     break
 
         # Last resort: use last non-empty line
@@ -132,7 +128,6 @@ class ReActAgent:
             lines = [l.strip() for l in response.split("\n") if l.strip()]
             if lines:
                 action = lines[-1]
-                action = re.sub(r'\s*\([^)]*\)\s*$', '', action).strip()
 
         return thought, action
 

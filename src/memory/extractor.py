@@ -159,11 +159,29 @@ class MemoryExtractor:
                 is_success=is_success,
             )
 
+            system_prompt = "You are an expert at analyzing science experiment execution and extracting reusable strategies."
+
+            # Log extraction request
+            logger.debug("")
+            logger.debug("=" * 80)
+            logger.debug(f"MEMORY EXTRACTION: {task_id}")
+            logger.debug("=" * 80)
+            logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
+            logger.debug(system_prompt)
+            logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
+            logger.debug(prompt)
+            logger.debug("-" * 80)
+
             # Call LLM
             response = self.llm_client.chat_simple(
-                system_prompt="You are an expert at analyzing science experiment execution and extracting reusable strategies.",
+                system_prompt=system_prompt,
                 user_prompt=prompt,
             )
+
+            # Log extraction response
+            logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+            logger.debug(response)
+            logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)
@@ -235,11 +253,29 @@ class MemoryExtractor:
                 trajectories=trajectories,
             )
 
+            system_prompt = "You are an expert at analyzing science experiment execution and extracting patterns from multiple attempts."
+
+            # Log contrastive extraction request
+            logger.debug("")
+            logger.debug("=" * 80)
+            logger.debug(f"CONTRASTIVE MEMORY EXTRACTION: {task_id}")
+            logger.debug("=" * 80)
+            logger.debug("-" * 40 + " SYSTEM PROMPT " + "-" * 40)
+            logger.debug(system_prompt)
+            logger.debug("-" * 40 + " USER PROMPT " + "-" * 40)
+            logger.debug(prompt)
+            logger.debug("-" * 80)
+
             # Call LLM
             response = self.llm_client.chat_simple(
-                system_prompt="You are an expert at analyzing science experiment execution and extracting patterns from multiple attempts.",
+                system_prompt=system_prompt,
                 user_prompt=prompt,
             )
+
+            # Log contrastive extraction response
+            logger.debug("-" * 40 + " LLM RESPONSE " + "-" * 40)
+            logger.debug(response)
+            logger.debug("=" * 80)
 
             # Parse response
             items = _try_parse_json(response)

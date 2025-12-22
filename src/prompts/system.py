@@ -135,26 +135,19 @@ def _format_trajectory_for_memory(trajectory: List[dict]) -> str:
         trajectory: List of action-observation pairs.
 
     Returns:
-        Formatted trajectory string (abbreviated).
+        Formatted trajectory string (full content, no truncation).
     """
     if not trajectory:
         return "(empty)"
 
-    max_show = 6
     lines = []
-
-    if len(trajectory) <= max_show:
-        for step in trajectory:
-            action = step.get("action", "")
-            lines.append(f"  > {action}")
-    else:
-        for step in trajectory[:3]:
-            action = step.get("action", "")
-            lines.append(f"  > {action}")
-        lines.append(f"  ... ({len(trajectory) - 6} more steps) ...")
-        for step in trajectory[-3:]:
-            action = step.get("action", "")
-            lines.append(f"  > {action}")
+    for i, step in enumerate(trajectory, 1):
+        action = step.get("action", "")
+        observation = step.get("observation", "")
+        lines.append(f"  Step {i}:")
+        lines.append(f"    Action: {action}")
+        if observation:
+            lines.append(f"    Observation: {observation}")
 
     return "\n".join(lines)
 
@@ -166,7 +159,7 @@ def _format_memory_items(memory_items: List) -> str:
         memory_items: List of MemoryEntry objects.
 
     Returns:
-        Formatted memory items string.
+        Formatted memory items string (full content, no truncation).
     """
     if not memory_items:
         return ""
@@ -175,9 +168,8 @@ def _format_memory_items(memory_items: List) -> str:
     for item in memory_items:
         lines.append(f"    - {item.title}: {item.description}")
         if item.content:
-            content = item.content[:200] + \
-                "..." if len(item.content) > 200 else item.content
-            lines.append(f"      {content}")
+            # Full content, no truncation
+            lines.append(f"      {item.content}")
 
     return "\n".join(lines)
 
@@ -271,7 +263,7 @@ def build_user_prompt(
 
     Returns:
         Formatted user prompt string.
-        
+
     Note:
         - The last entry in history has the same observation as current_observation,
           so we don't show the observation for the last action in history.
