@@ -57,8 +57,11 @@ class LLMClient:
                 "model": self.config.model,
                 "messages": messages,
                 "temperature": self.config.temperature,
-                "max_tokens": self.config.max_tokens,
             }
+
+            # Only set max_tokens if > 0 (0 means no limit)
+            if self.config.max_tokens > 0:
+                params["max_tokens"] = self.config.max_tokens
 
             # Add Qwen3 thinking mode if configured (for vLLM deployment)
             if self.config.enable_thinking is not None:
