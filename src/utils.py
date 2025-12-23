@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Set, Optional
 
 def get_timestamp() -> str:
     """Get current timestamp string.
-    
+
     Returns:
         ISO format timestamp string.
     """
@@ -18,10 +18,10 @@ def get_timestamp() -> str:
 
 def game_result_to_dict(result: Any) -> Dict[str, Any]:
     """Convert GameResult to dictionary for serialization.
-    
+
     Args:
         result: GameResult object.
-        
+
     Returns:
         Dictionary representation.
     """
@@ -44,10 +44,10 @@ def game_result_to_dict(result: Any) -> Dict[str, Any]:
 
 def compute_summary(results: List[Any]) -> Dict[str, Any]:
     """Compute summary statistics from results.
-    
+
     Args:
         results: List of GameResult objects.
-        
+
     Returns:
         Summary dictionary.
     """
@@ -61,13 +61,13 @@ def compute_summary(results: List[Any]) -> Dict[str, Any]:
             "success_avg_steps": 0.0,
             "by_task_id": {},
         }
-    
+
     total = len(results)
     successes = sum(1 for r in results if r.success)
     success_steps = sum(r.steps for r in results if r.success)
     total_steps = sum(r.steps for r in results)
     total_score = sum(r.score for r in results)
-    
+
     # Group by task_id
     by_task_id: Dict[str, Dict[str, Any]] = {}
     for r in results:
@@ -85,13 +85,16 @@ def compute_summary(results: List[Any]) -> Dict[str, Any]:
         by_task_id[task_id]["total_steps"] += r.steps
         if r.success:
             by_task_id[task_id]["successes"] += 1
-    
+
     # Compute per-task stats
     for task_id, stats in by_task_id.items():
-        stats["success_rate"] = stats["successes"] / stats["total"] if stats["total"] > 0 else 0
-        stats["avg_score"] = stats["total_score"] / stats["total"] if stats["total"] > 0 else 0
-        stats["avg_steps"] = stats["total_steps"] / stats["total"] if stats["total"] > 0 else 0
-    
+        stats["success_rate"] = stats["successes"] / \
+            stats["total"] if stats["total"] > 0 else 0
+        stats["avg_score"] = stats["total_score"] / \
+            stats["total"] if stats["total"] > 0 else 0
+        stats["avg_steps"] = stats["total_steps"] / \
+            stats["total"] if stats["total"] > 0 else 0
+
     return {
         "total_episodes": total,
         "successes": successes,
@@ -110,7 +113,7 @@ def save_results(
     model_name: str,
 ) -> None:
     """Save evaluation results to JSON file.
-    
+
     Args:
         results: List of GameResult objects.
         config_dict: Configuration dictionary.
@@ -118,7 +121,7 @@ def save_results(
         model_name: Model name.
     """
     summary = compute_summary(results)
-    
+
     output = {
         "model": model_name,
         "timestamp": get_timestamp(),
@@ -126,17 +129,17 @@ def save_results(
         "summary": summary,
         "results": [game_result_to_dict(r) for r in results],
     }
-    
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
 
 
 def load_checkpoint(checkpoint_path: str) -> Dict[str, Any]:
     """Load checkpoint from file.
-    
+
     Args:
         checkpoint_path: Path to checkpoint file.
-        
+
     Returns:
         Checkpoint data with completed_episode_ids and results.
     """
@@ -145,11 +148,11 @@ def load_checkpoint(checkpoint_path: str) -> Dict[str, Any]:
             "completed_episode_ids": set(),
             "results": [],
         }
-    
+
     try:
         with open(checkpoint_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         return {
             "completed_episode_ids": set(data.get("completed_episode_ids", [])),
             "results": data.get("results", []),
@@ -167,7 +170,7 @@ def save_checkpoint(
     results: List[Dict[str, Any]],
 ) -> None:
     """Save checkpoint to file.
-    
+
     Args:
         checkpoint_path: Path to checkpoint file.
         completed_episode_ids: Set of completed episode IDs.
@@ -178,7 +181,7 @@ def save_checkpoint(
         "results": results,
         "timestamp": get_timestamp(),
     }
-    
+
     with open(checkpoint_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -255,4 +258,3 @@ def generate_run_id(config: Any) -> str:
             memory_suffix += "_matts"
 
     return f"{model_short}_{config.test.split}_{task_str}{memory_suffix}_{params_hash}"
-

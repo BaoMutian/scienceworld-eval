@@ -435,31 +435,35 @@ class Evaluator:
     def _run_matts_contrastive(self, task_info: Dict[str, Any]) -> Optional[EpisodeResult]:
         """Run MaTTS contrastive extraction for a task.
 
-        Runs multiple samples and extracts high-quality memory through comparison.
+        Runs 1 main episode + N extra samples for contrastive extraction.
+        The main episode result is used for evaluation statistics.
 
         Args:
             task_info: Task information dict.
 
         Returns:
-            Best episode result, or None if failed.
+            Main episode result (first sample), used for evaluation.
         """
         task_id = task_info["task_id"]
         task_name = task_info["task_name"]
         variation = task_info["variation"]
-        sample_n = self.config.memory.matts.sample_n
+        extra_n = self.config.memory.matts.sample_n  # Extra samples for comparison
+        total_samples = 1 + extra_n  # Main (1) + Extra (n)
 
         print(f"\n{Colors.highlight('='*50)}")
         print(f"{Colors.info('MaTTS Contrastive Extraction')}")
         print(f"  Task: {task_id} ({task_name}) v{variation}")
-        print(f"  Samples: {sample_n}")
+        print(f"  Samples: 1 main + {extra_n} extra = {total_samples} total")
         print(f"{Colors.highlight('='*50)}")
 
-        # Collect multiple trajectory samples
+        # Collect trajectory samples: main (1) + extra (n)
         trajectories_data: List[Dict[str, Any]] = []
         results: List[EpisodeResult] = []
 
-        for sample_idx in range(sample_n):
-            print(f"\n{Colors.dim(f'--- Sample {sample_idx + 1}/{sample_n} ---')}")
+        for sample_idx in range(total_samples):
+            is_main = sample_idx == 0
+            label = "Main" if is_main else f"Extra {sample_idx}"
+            print(f"\n{Colors.dim(f'--- {label} ({sample_idx + 1}/{total_samples}) ---')}")
 
             result = self._run_matts_episode(task_info, sample_idx)
             results.append(result)
@@ -470,22 +474,29 @@ class Evaluator:
 
             # Display sample result
             status = Colors.success("✓ SUCCESS") if result.success else Colors.error("✗ FAILED")
-            print(f"  Result: {status} | Score: {result.score} | Steps: {result.steps}")
+            marker = Colors.info("[EVAL]") if is_main else ""
+            print(f"  Result: {status} | Score: {result.score} | Steps: {result.steps} {marker}")
 
-        # Summarize samples
+        # Summarize all samples
         success_count = sum(1 for r in results if r.success)
         print(f"\n{Colors.info('Sample Summary:')}")
-        print(f"  Success: {Colors.success(str(success_count))}/{sample_n}")
+        print(f"  Total: {total_samples} (1 main + {extra_n} extra)")
+        print(f"  Success: {Colors.success(str(success_count))}/{total_samples}")
         print(f"  Avg Score: {sum(r.score for r in results) / len(results):.1f}")
 
-        # Run contrastive extraction
+        # Main result for evaluation
+        main_result = results[0]
+        main_status = Colors.success("SUCCESS") if main_result.success else Colors.error("FAILED")
+        print(f"  {Colors.info('Main (Eval):')} {main_status} | Score: {main_result.score}")
+
+        # Run contrastive extraction using all trajectories
         if self.memory_extractor and self.memory_store and trajectories_data:
             print(f"\n{Colors.info('Running contrastive extraction...')}")
 
-            # Get goal from first result
-            goal = results[0].goal if results else ""
+            # Get goal from main result
+            goal = main_result.goal
 
-            # Use MaTTS-specific temperature and thinking mode
+            # Use MaTTS-specific thinking mode
             memory = self.memory_extractor.extract_contrastive(
                 task_id=f"{task_id}_v{variation}_matts",
                 task_type=task_name,
@@ -505,9 +516,8 @@ class Evaluator:
 
         print(f"{Colors.highlight('='*50)}\n")
 
-        # Return the best result (highest score, prefer success)
-        best_result = max(results, key=lambda r: (r.success, r.score))
-        return best_result
+        # Return the main result (first sample) for evaluation statistics
+        return main_result
 
     def _run_episode(self, task_info: Dict[str, Any]) -> EpisodeResult:
         """Run a single episode with optional memory support.

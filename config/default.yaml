@@ -23,7 +23,7 @@ test:
   task_ids: ["1-1"] # null = all tasks, or list like ["1-1", "4-1", "4-2"]
   split: "dev" # train/dev/test
   seed: 42
-  max_steps: 30 # Maximum steps per episode
+  max_steps: 5 # Maximum steps per episode
   simplifications: "easy" # easy, or comma-separated: "teleportAction,openDoors"
 
 # Prompt Configuration
@@ -48,18 +48,19 @@ memory:
 
   # Embedding model configuration
   embedding_model: "BAAI/bge-base-en-v1.5"
-  embedding_device: "cpu"
+  embedding_device: "cuda:0"
 
   # Retrieval parameters
   top_k: 1
   similarity_threshold: 0.5
 
   # MaTTS configuration (Memory-aware Test-Time Scaling)
-  # When enabled, runs multiple attempts on the same task and extracts
+  # When enabled, runs 1 main + N extra attempts on the same task and extracts
   # high-quality insights by comparing successful and failed trajectories.
+  # Only the main (first) attempt counts toward evaluation statistics.
   matts:
-    enabled: false     # Set to true to enable MaTTS contrastive extraction
-    sample_n: 3        # Number of attempts per task for contrastive extraction
+    enabled: true      # Set to true to enable MaTTS contrastive extraction
+    sample_n: 2        # Extra samples for comparison (total = 1 main + N extra)
     temperature: 0.7   # Higher temperature for diverse sampling
     max_tokens: 2048   # Longer responses for detailed contrastive analysis
     # Qwen3 thinking mode for MaTTS extraction: true/false/null(not set)

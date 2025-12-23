@@ -58,9 +58,14 @@ class RuntimeConfig:
 
 @dataclass
 class MaTTSConfig:
-    """MaTTS (Memory-aware Test-Time Scaling) configuration."""
+    """MaTTS (Memory-aware Test-Time Scaling) configuration.
+
+    When enabled, runs 1 main + N extra attempts per task.
+    Only the main (first) attempt counts toward evaluation statistics.
+    All attempts are used for contrastive memory extraction.
+    """
     enabled: bool = False
-    sample_n: int = 3  # Number of samples per task for contrastive extraction
+    sample_n: int = 2  # Extra samples for comparison (total = 1 main + N extra)
     temperature: float = 0.7  # Higher temperature for diverse sampling
     max_tokens: int = 2048  # Longer responses for contrastive analysis
     # Qwen3 thinking mode for MaTTS extraction (separate from main LLM config)
