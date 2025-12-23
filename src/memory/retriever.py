@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class MemoryRetriever:
     """Retriever for finding relevant memories based on query similarity.
-    
+
     Uses embedding-based similarity search to find memories that are
     relevant to the current task.
     """
@@ -27,7 +27,7 @@ class MemoryRetriever:
         similarity_threshold: float = 0.5,
     ):
         """Initialize memory retriever.
-        
+
         Args:
             store: Memory store to retrieve from.
             embedding_model: Embedding model for encoding queries.
@@ -46,12 +46,12 @@ class MemoryRetriever:
         similarity_threshold: Optional[float] = None,
     ) -> List[RetrievedMemory]:
         """Retrieve relevant memories for a query.
-        
+
         Args:
             query: The query string (typically task goal).
             top_k: Override default top_k.
             similarity_threshold: Override default threshold.
-            
+
         Returns:
             List of RetrievedMemory objects sorted by similarity (highest first).
         """
@@ -80,7 +80,8 @@ class MemoryRetriever:
                 return []
 
             # Compute similarities
-            similarities = cosine_similarity(query_embedding, corpus_embeddings)
+            similarities = cosine_similarity(
+                query_embedding, corpus_embeddings)
 
             # Get top-k indices above threshold
             retrieved = []
