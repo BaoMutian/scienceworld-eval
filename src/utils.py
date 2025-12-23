@@ -185,26 +185,53 @@ def save_checkpoint(
 
 def generate_run_id(config: Any) -> str:
     """Generate a stable run ID based on configuration.
-    
+
+    The run ID changes when any parameter that affects results changes.
+
     Args:
         config: Configuration object.
-        
+
     Returns:
         Run ID string.
     """
+    # All parameters that affect experiment results
     key_params = {
+        # LLM parameters
         "model": config.llm.model,
+        "temperature": config.llm.temperature,
+        "max_tokens": config.llm.max_tokens,
+        "enable_thinking": config.llm.enable_thinking,
+        # Test parameters
         "split": config.test.split,
         "task_ids": sorted(config.test.task_ids) if config.test.task_ids else None,
         "num_episodes": config.test.num_episodes,
         "seed": config.test.seed,
         "max_steps": config.test.max_steps,
         "simplifications": config.test.simplifications,
+        # Prompt parameters
         "use_few_shot": config.prompt.use_few_shot,
         "history_length": config.prompt.history_length,
+        # Memory parameters
         "memory_enabled": config.memory.enabled,
         "memory_mode": config.memory.mode,
     }
+
+    # Add memory-specific parameters if enabled
+    if config.memory.enabled and config.memory.mode != "baseline":
+        key_params.update({
+            "embedding_model": config.memory.embedding_model,
+            "top_k": config.memory.top_k,
+            "similarity_threshold": config.memory.similarity_threshold,
+        })
+
+        # Add MaTTS parameters if enabled
+        if config.memory.matts.enabled:
+            key_params.update({
+                "matts_enabled": True,
+                "matts_sample_n": config.memory.matts.sample_n,
+                "matts_temperature": config.memory.matts.temperature,
+                "matts_enable_thinking": config.memory.matts.enable_thinking,
+            })
 
     params_hash = hashlib.md5(
         json.dumps(key_params, sort_keys=True).encode()
@@ -212,12 +239,20 @@ def generate_run_id(config: Any) -> str:
 
     model_short = config.llm.model.split("/")[-1]
     task_str = "all" if not config.test.task_ids else f"t{len(config.test.task_ids)}"
-    
+
     # Add memory mode suffix if enabled
     memory_suffix = ""
     if config.memory.enabled:
-        mode_short = {"baseline": "base", "retrieve_only": "ret", "retrieve_and_extract": "retex"}
+        mode_short = {
+            "baseline": "base",
+            "retrieve_only": "ret",
+            "retrieve_and_extract": "retex"
+        }
         memory_suffix = f"_mem{mode_short.get(config.memory.mode, config.memory.mode[:3])}"
+
+        # Add MaTTS indicator if enabled
+        if config.memory.matts.enabled:
+            memory_suffix += "_matts"
 
     return f"{model_short}_{config.test.split}_{task_str}{memory_suffix}_{params_hash}"
 
