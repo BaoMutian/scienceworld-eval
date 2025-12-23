@@ -59,9 +59,9 @@ memory:
   # high-quality insights by comparing successful and failed trajectories.
   # Only the main (first) attempt counts toward evaluation statistics.
   matts:
-    enabled: true      # Set to true to enable MaTTS contrastive extraction
-    sample_n: 2        # Extra samples for comparison (total = 1 main + N extra)
-    temperature: 0.7   # Higher temperature for diverse sampling
-    max_tokens: 2048   # Longer responses for detailed contrastive analysis
+    enabled: true # Set to true to enable MaTTS contrastive extraction
+    sample_n: 2 # Extra samples for comparison (total = 1 main + N extra)
+    temperature: 0.7 # Higher temperature for diverse sampling
+    max_tokens: 2048 # Longer responses for detailed contrastive analysis
     # Qwen3 thinking mode for MaTTS extraction: true/false/null(not set)
     enable_thinking: null

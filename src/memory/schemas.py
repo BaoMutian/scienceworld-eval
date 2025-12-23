@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 @dataclass
 class MemoryEntry:
     """A single memory entry containing extracted reasoning strategy.
-    
+
     Each memory entry represents a distilled piece of knowledge
     that can be applied to similar tasks.
     """
@@ -38,7 +38,7 @@ class MemoryEntry:
 @dataclass
 class Memory:
     """A complete memory item containing task context and extracted strategies.
-    
+
     Stores the full context of a task execution including the trajectory
     and the distilled memory entries for future retrieval.
     """
@@ -50,6 +50,30 @@ class Memory:
     is_success: bool
     memory_items: List[MemoryEntry] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    # Retrieval statistics
+    retrieval_count: int = 0  # Total times this memory was retrieved
+    retrieval_success_count: int = 0  # Times task succeeded after retrieval
+
+    @property
+    def retrieval_success_rate(self) -> float:
+        """Calculate success rate when this memory is retrieved.
+
+        Returns:
+            Success rate (0.0-1.0), or 0.0 if never retrieved.
+        """
+        if self.retrieval_count == 0:
+            return 0.0
+        return self.retrieval_success_count / self.retrieval_count
+
+    def record_retrieval(self, task_success: bool) -> None:
+        """Record a retrieval event for this memory.
+
+        Args:
+            task_success: Whether the task succeeded after using this memory.
+        """
+        self.retrieval_count += 1
+        if task_success:
+            self.retrieval_success_count += 1
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -62,13 +86,15 @@ class Memory:
             "is_success": self.is_success,
             "memory_items": [item.to_dict() for item in self.memory_items],
             "created_at": self.created_at,
+            "retrieval_count": self.retrieval_count,
+            "retrieval_success_count": self.retrieval_success_count,
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Memory":
         """Create from dictionary."""
         memory_items = [
-            MemoryEntry.from_dict(item) 
+            MemoryEntry.from_dict(item)
             for item in data.get("memory_items", [])
         ]
         return cls(
@@ -80,6 +106,8 @@ class Memory:
             is_success=data.get("is_success", False),
             memory_items=memory_items,
             created_at=data.get("created_at", datetime.now().isoformat()),
+            retrieval_count=data.get("retrieval_count", 0),
+            retrieval_success_count=data.get("retrieval_success_count", 0),
         )
 
     @staticmethod
@@ -91,7 +119,7 @@ class Memory:
 @dataclass
 class RetrievedMemory:
     """A memory retrieved from the memory bank with similarity score.
-    
+
     Used to pass retrieval results to the prompt builder.
     """
     memory: Memory
@@ -126,4 +154,3 @@ class RetrievedMemory:
             "is_success": self.is_success,
             "num_items": len(self.memory_items),
         }
-

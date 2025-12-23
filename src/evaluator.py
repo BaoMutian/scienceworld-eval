@@ -347,7 +347,8 @@ class Evaluator:
         # Build trajectory from result
         trajectory = []
         for i, action in enumerate(result.actions):
-            obs = result.observations[i + 1] if i + 1 < len(result.observations) else ""
+            obs = result.observations[i + 1] if i + \
+                1 < len(result.observations) else ""
             trajectory.append({
                 "action": action,
                 "observation": obs,
@@ -391,7 +392,8 @@ class Evaluator:
             goal = extract_task_description(obs, info.get("taskDesc", ""))
 
             # Retrieve memories (if any exist already)
-            retrieved_memories = self._retrieve_memories(task_name, goal) if goal else []
+            retrieved_memories = self._retrieve_memories(
+                task_name, goal) if goal else []
 
             # Create agent with higher temperature for diverse sampling
             from .agent import ReActAgent
@@ -415,7 +417,8 @@ class Evaluator:
             return result
 
         except Exception as e:
-            logger.error(f"MaTTS sample {sample_idx} failed for {task_info['task_id']}: {e}")
+            logger.error(
+                f"MaTTS sample {sample_idx} failed for {task_info['task_id']}: {e}")
             from .agent import EpisodeResult as ER
             return ER(
                 episode_id=f"{task_info['task_id']}_v{variation}_s{sample_idx}",
@@ -463,7 +466,8 @@ class Evaluator:
         for sample_idx in range(total_samples):
             is_main = sample_idx == 0
             label = "Main" if is_main else f"Extra {sample_idx}"
-            print(f"\n{Colors.dim(f'--- {label} ({sample_idx + 1}/{total_samples}) ---')}")
+            print(
+                f"\n{Colors.dim(f'--- {label} ({sample_idx + 1}/{total_samples}) ---')}")
 
             result = self._run_matts_episode(task_info, sample_idx)
             results.append(result)
@@ -473,21 +477,27 @@ class Evaluator:
             trajectories_data.append(traj_data)
 
             # Display sample result
-            status = Colors.success("✓ SUCCESS") if result.success else Colors.error("✗ FAILED")
+            status = Colors.success(
+                "✓ SUCCESS") if result.success else Colors.error("✗ FAILED")
             marker = Colors.info("[EVAL]") if is_main else ""
-            print(f"  Result: {status} | Score: {result.score} | Steps: {result.steps} {marker}")
+            print(
+                f"  Result: {status} | Score: {result.score} | Steps: {result.steps} {marker}")
 
         # Summarize all samples
         success_count = sum(1 for r in results if r.success)
         print(f"\n{Colors.info('Sample Summary:')}")
         print(f"  Total: {total_samples} (1 main + {extra_n} extra)")
-        print(f"  Success: {Colors.success(str(success_count))}/{total_samples}")
-        print(f"  Avg Score: {sum(r.score for r in results) / len(results):.1f}")
+        print(
+            f"  Success: {Colors.success(str(success_count))}/{total_samples}")
+        print(
+            f"  Avg Score: {sum(r.score for r in results) / len(results):.1f}")
 
         # Main result for evaluation
         main_result = results[0]
-        main_status = Colors.success("SUCCESS") if main_result.success else Colors.error("FAILED")
-        print(f"  {Colors.info('Main (Eval):')} {main_status} | Score: {main_result.score}")
+        main_status = Colors.success(
+            "SUCCESS") if main_result.success else Colors.error("FAILED")
+        print(
+            f"  {Colors.info('Main (Eval):')} {main_status} | Score: {main_result.score}")
 
         # Run contrastive extraction using all trajectories
         if self.memory_extractor and self.memory_store and trajectories_data:
@@ -507,7 +517,8 @@ class Evaluator:
 
             if memory:
                 self.memory_store.add(memory)
-                print(f"  {Colors.success('✓ Extracted')} {len(memory.memory_items)} high-quality items:")
+                print(
+                    f"  {Colors.success('✓ Extracted')} {len(memory.memory_items)} high-quality items:")
                 for item in memory.memory_items:
                     print(f"    • {Colors.info(item.title)}")
                     print(f"      {Colors.dim(item.description)}")
@@ -516,12 +527,21 @@ class Evaluator:
 
         print(f"{Colors.highlight('='*50)}\n")
 
+        # Record retrieval statistics for memories used in main result
+        if main_result.used_memories and self.memory_store:
+            memory_ids = [
+                m.get("memory_id") for m in main_result.used_memories
+                if m.get("memory_id")
+            ]
+            if memory_ids:
+                self.memory_store.record_retrievals(memory_ids, main_result.success)
+
         # Return the main result (first sample) for evaluation statistics
         return main_result
 
     def _run_episode(self, task_info: Dict[str, Any]) -> EpisodeResult:
         """Run a single episode with optional memory support.
-        
+
         If MaTTS is enabled, runs multiple samples and does contrastive extraction.
         Otherwise, runs a single episode with standard extraction.
         """
@@ -562,6 +582,11 @@ class Evaluator:
                 max_steps=self.config.test.max_steps,
                 episode_num=episode
             )
+
+            # Record retrieval statistics for memories used
+            if retrieved_memories and self.memory_store:
+                memory_ids = [rm.memory_id for rm in retrieved_memories]
+                self.memory_store.record_retrievals(memory_ids, result.success)
 
             # Extract and store memory if enabled (standard extraction)
             if self.config.memory.should_extract():
@@ -614,7 +639,7 @@ class Evaluator:
                     f"  Bank:     {Colors.info(str(stats['total_memories']))} memories")
             else:
                 print(f"  Bank:     {Colors.warning('Not initialized')}")
-            
+
             # Print MaTTS info if enabled
             if self.config.memory.should_use_matts():
                 matts = self.config.memory.matts
@@ -623,7 +648,8 @@ class Evaluator:
                 print(f"    Samples:     {matts.sample_n} per task")
                 print(f"    Temperature: {matts.temperature}")
                 if matts.enable_thinking is not None:
-                    thinking_str = Colors.success("ON") if matts.enable_thinking else Colors.dim("OFF")
+                    thinking_str = Colors.success(
+                        "ON") if matts.enable_thinking else Colors.dim("OFF")
                     print(f"    Thinking:    {thinking_str}")
 
         print(Colors.highlight("=" * 60))
@@ -772,6 +798,18 @@ class Evaluator:
             print(f"    Total memories:   {stats['total_memories']}")
             print(f"    Success memories: {stats['success_memories']}")
             print(f"    Failure memories: {stats['failure_memories']}")
+            # Retrieval statistics
+            if stats['total_retrievals'] > 0:
+                rate = stats['avg_retrieval_success_rate']
+                rate_color = (
+                    Colors.BRIGHT_GREEN if rate >= 0.7
+                    else Colors.BRIGHT_YELLOW if rate >= 0.5
+                    else Colors.BRIGHT_RED
+                )
+                print(f"    Total retrievals: {stats['total_retrievals']}")
+                print(
+                    f"    Retrieval success rate: {rate_color}{rate:.2%}{Colors.RESET}"
+                )
 
         print()
         print(Colors.highlight("=" * 60))

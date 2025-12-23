@@ -243,9 +243,49 @@ class MemoryStore:
 
         logger.info("Cleared all memories")
 
+    def record_retrievals(
+        self,
+        memory_ids: List[str],
+        task_success: bool,
+    ) -> None:
+        """Record retrieval events for memories.
+
+        Updates the retrieval statistics for each memory and saves to disk.
+
+        Args:
+            memory_ids: List of memory IDs that were retrieved.
+            task_success: Whether the task succeeded after using these memories.
+        """
+        updated = False
+        for memory_id in memory_ids:
+            memory = self.get(memory_id)
+            if memory:
+                memory.record_retrieval(task_success)
+                updated = True
+                logger.debug(
+                    f"Recorded retrieval for {memory_id}: "
+                    f"success={task_success}, "
+                    f"total={memory.retrieval_count}, "
+                    f"rate={memory.retrieval_success_rate:.2%}"
+                )
+
+        # Save updated memories to disk
+        if updated:
+            self._save_all_memories()
+
+    def _save_all_memories(self) -> None:
+        """Save all memories to the JSONL file (overwriting existing)."""
+        try:
+            with open(self.memories_path, "w", encoding="utf-8") as f:
+                for memory in self._memories:
+                    f.write(json.dumps(memory.to_dict(), ensure_ascii=False) + "\n")
+            logger.debug(f"Saved {len(self._memories)} memories to {self.memories_path}")
+        except Exception as e:
+            logger.error(f"Failed to save memories: {e}")
+
     def get_stats(self) -> dict:
         """Get statistics about the memory store.
-        
+
         Returns:
             Dictionary with store statistics.
         """
@@ -256,6 +296,14 @@ class MemoryStore:
         for m in self._memories:
             task_types[m.task_type] = task_types.get(m.task_type, 0) + 1
 
+        # Retrieval statistics
+        total_retrievals = sum(m.retrieval_count for m in self._memories)
+        total_retrieval_successes = sum(m.retrieval_success_count for m in self._memories)
+        avg_retrieval_success_rate = (
+            total_retrieval_successes / total_retrievals
+            if total_retrievals > 0 else 0.0
+        )
+
         return {
             "total_memories": len(self._memories),
             "success_memories": success_count,
@@ -265,5 +313,9 @@ class MemoryStore:
             "task_types": task_types,
             "memories_path": str(self.memories_path),
             "embeddings_path": str(self.embeddings_path),
+            # Retrieval statistics
+            "total_retrievals": total_retrievals,
+            "total_retrieval_successes": total_retrieval_successes,
+            "avg_retrieval_success_rate": avg_retrieval_success_rate,
         }
 
