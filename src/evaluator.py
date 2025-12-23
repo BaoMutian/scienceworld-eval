@@ -15,7 +15,7 @@ from .environment import (
     get_task_name_from_id,
     get_episode_id,
 )
-from .agent import EpisodeResult, run_single_episode
+from .agent import EpisodeResult
 from .prompts import get_system_prompt, extract_task_description
 from .utils import (
     game_result_to_dict,
@@ -290,22 +290,15 @@ class Evaluator:
             return
 
         try:
-            # Build trajectory from result
-            trajectory = []
-            for i, action in enumerate(result.actions):
-                obs = result.observations[i + 1] if i + \
-                    1 < len(result.observations) else ""
-                trajectory.append({
-                    "action": action,
-                    "observation": obs,
-                })
+            # Build trajectory data (reuse helper method)
+            traj_data = self._build_trajectory_data(result)
 
             # Extract memory
             memory = self.memory_extractor.extract(
                 task_id=result.episode_id,
                 task_type=result.task_name,
                 goal=result.goal,
-                trajectory=trajectory,
+                trajectory=traj_data["trajectory"],
                 is_success=result.success,
             )
 
@@ -506,13 +499,16 @@ class Evaluator:
             # Get goal from main result
             goal = main_result.goal
 
-            # Use MaTTS-specific thinking mode
+            # Use MaTTS-specific parameters
+            matts_config = self.config.memory.matts
             memory = self.memory_extractor.extract_contrastive(
                 task_id=f"{task_id}_v{variation}_matts",
                 task_type=task_name,
                 goal=goal,
                 trajectories=trajectories_data,
-                enable_thinking=self.config.memory.matts.enable_thinking,
+                enable_thinking=matts_config.enable_thinking,
+                temperature=matts_config.temperature,
+                max_tokens=matts_config.max_tokens,
             )
 
             if memory:
@@ -646,7 +642,7 @@ class Evaluator:
                 matts = self.config.memory.matts
                 print(Colors.dim("-" * 40))
                 print(f"  {Colors.info('MaTTS Enabled:')}")
-                print(f"    Samples:     {matts.sample_n} per task")
+                print(f"    Samples:     1 main + {matts.sample_n} extra per task")
                 print(f"    Temperature: {matts.temperature}")
                 if matts.enable_thinking is not None:
                     thinking_str = Colors.success(

@@ -162,10 +162,12 @@ class MemoryExtractor:
                 is_success=is_success,
             )
 
-            # Call LLM
+            # Call LLM with configured temperature and max_tokens
             response = self.llm_client.chat_simple(
                 system_prompt=system_prompt,
                 user_prompt=prompt,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
             )
 
             # Log extraction interaction for debug
@@ -230,6 +232,8 @@ class MemoryExtractor:
         goal: str,
         trajectories: List[Dict],
         enable_thinking: Optional[bool] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ) -> Optional[Memory]:
         """Extract memory from multiple trajectories using contrastive analysis.
 
@@ -247,6 +251,8 @@ class MemoryExtractor:
                 - 'steps': Number of steps
                 - 'initial_observation': Initial environment state
             enable_thinking: Optional Qwen3 thinking mode override.
+            temperature: Optional temperature override for MaTTS.
+            max_tokens: Optional max_tokens override for MaTTS.
 
         Returns:
             Memory object if extraction succeeds, None otherwise.
@@ -269,10 +275,12 @@ class MemoryExtractor:
                 trajectories=trajectories,
             )
 
-            # Call LLM with optional thinking mode
+            # Call LLM with optional overrides for MaTTS
             response = self.llm_client.chat_simple(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
+                temperature=temperature if temperature is not None else self.temperature,
+                max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
                 enable_thinking=enable_thinking,
             )
 
