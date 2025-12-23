@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from .schemas import Memory, RetrievedMemory
+from .schemas import RetrievedMemory
 from .store import MemoryStore
 from .embeddings import EmbeddingModel, cosine_similarity
 
@@ -110,79 +110,3 @@ class MemoryRetriever:
         except Exception as e:
             logger.error(f"Failed to retrieve memories: {e}")
             return []
-
-    def retrieve_by_task_type(
-        self,
-        query: str,
-        task_type: str,
-        top_k: Optional[int] = None,
-        similarity_threshold: Optional[float] = None,
-    ) -> List[RetrievedMemory]:
-        """Retrieve memories filtered by task type.
-        
-        Args:
-            query: The query string.
-            task_type: Task type (task_name) to filter by.
-            top_k: Override default top_k.
-            similarity_threshold: Override default threshold.
-            
-        Returns:
-            List of RetrievedMemory objects filtered by task type.
-        """
-        # First get all relevant memories
-        all_retrieved = self.retrieve(
-            query,
-            top_k=top_k * 3 if top_k else self.top_k * 3,  # Get more to filter
-            similarity_threshold=similarity_threshold,
-        )
-
-        # Filter by task type
-        filtered = [r for r in all_retrieved if r.memory.task_type == task_type]
-
-        # Limit to top_k
-        k = top_k if top_k is not None else self.top_k
-        return filtered[:k]
-
-    def retrieve_successful(
-        self,
-        query: str,
-        top_k: Optional[int] = None,
-        similarity_threshold: Optional[float] = None,
-    ) -> List[RetrievedMemory]:
-        """Retrieve only successful memories.
-        
-        Args:
-            query: The query string.
-            top_k: Override default top_k.
-            similarity_threshold: Override default threshold.
-            
-        Returns:
-            List of RetrievedMemory objects that are marked as successful.
-        """
-        all_retrieved = self.retrieve(
-            query,
-            top_k=top_k * 3 if top_k else self.top_k * 3,
-            similarity_threshold=similarity_threshold,
-        )
-
-        filtered = [r for r in all_retrieved if r.is_success]
-
-        k = top_k if top_k is not None else self.top_k
-        return filtered[:k]
-
-    def update_config(
-        self,
-        top_k: Optional[int] = None,
-        similarity_threshold: Optional[float] = None,
-    ) -> None:
-        """Update retrieval configuration.
-        
-        Args:
-            top_k: New top_k value.
-            similarity_threshold: New threshold value.
-        """
-        if top_k is not None:
-            self.top_k = top_k
-        if similarity_threshold is not None:
-            self.similarity_threshold = similarity_threshold
-

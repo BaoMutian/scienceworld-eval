@@ -8,7 +8,6 @@ from typing import List, Tuple, Optional, Dict, Any, TYPE_CHECKING
 from .llm_client import LLMClient
 from .environment import ScienceWorldEnv, get_episode_id
 from .prompts import (
-    get_system_prompt,
     get_system_prompt_with_memory,
     build_user_prompt,
     extract_task_description,
@@ -18,7 +17,6 @@ from .logging_utils import (
     log_episode_start,
     log_episode_end,
     log_step_interaction,
-    format_episode_result,
 )
 
 if TYPE_CHECKING:
@@ -261,74 +259,3 @@ class ReActAgent:
                 f"  Result: {status} | Score: {result.score:.0f} | Steps: {result.steps}")
 
         return result
-
-
-def run_single_episode(
-    task_name: str,
-    variation_idx: int,
-    episode_num: int,
-    llm_client: LLMClient,
-    simplifications: str = "easy",
-    use_few_shot: bool = True,
-    history_length: int = 20,
-    max_steps: int = 50,
-    debug: bool = False,
-    retrieved_memories: Optional[List["RetrievedMemory"]] = None,
-) -> EpisodeResult:
-    """Run a single episode from scratch.
-
-    Args:
-        task_name: Name of the task.
-        variation_idx: Variation index.
-        episode_num: Episode number.
-        llm_client: LLM client for generating responses.
-        simplifications: Simplifications string.
-        use_few_shot: Whether to include few-shot examples.
-        history_length: Number of history entries to include.
-        max_steps: Maximum steps per episode.
-        debug: Whether to enable debug logging.
-        retrieved_memories: Optional list of retrieved memories to use.
-
-    Returns:
-        EpisodeResult with execution results.
-    """
-    env = None
-    try:
-        env = ScienceWorldEnv(simplifications_str=simplifications)
-        obs, info = env.reset(task_name, variation_idx)
-
-        agent = ReActAgent(
-            llm_client=llm_client,
-            use_few_shot=use_few_shot,
-            history_length=history_length,
-            debug=debug,
-            retrieved_memories=retrieved_memories,
-            task_name=task_name,
-        )
-
-        return agent.run_episode(
-            env, obs, info,
-            max_steps=max_steps,
-            episode_num=episode_num
-        )
-
-    except Exception as e:
-        logger.error(
-            f"Error running episode for {task_name} v{variation_idx}: {e}")
-        from .environment import get_task_id_from_name
-        task_id = get_task_id_from_name(task_name)
-        episode_id = get_episode_id(task_id, variation_idx, episode_num)
-        return EpisodeResult(
-            episode_id=episode_id,
-            task_id=task_id,
-            task_name=task_name,
-            variation=variation_idx,
-            success=False,
-            score=0,
-            steps=0,
-            goal="",
-            error=str(e),
-        )
-    finally:
-        if env:
-            env.close()

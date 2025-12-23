@@ -642,7 +642,8 @@ class Evaluator:
                 matts = self.config.memory.matts
                 print(Colors.dim("-" * 40))
                 print(f"  {Colors.info('MaTTS Enabled:')}")
-                print(f"    Samples:     1 main + {matts.sample_n} extra per task")
+                print(
+                    f"    Samples:     1 main + {matts.sample_n} extra per task")
                 print(f"    Temperature: {matts.temperature}")
                 if matts.enable_thinking is not None:
                     thinking_str = Colors.success(
