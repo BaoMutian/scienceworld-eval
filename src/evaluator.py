@@ -534,7 +534,8 @@ class Evaluator:
                 if m.get("memory_id")
             ]
             if memory_ids:
-                self.memory_store.record_retrievals(memory_ids, main_result.success)
+                self.memory_store.record_references(
+                    memory_ids, main_result.success)
 
         # Return the main result (first sample) for evaluation statistics
         return main_result
@@ -586,7 +587,7 @@ class Evaluator:
             # Record retrieval statistics for memories used
             if retrieved_memories and self.memory_store:
                 memory_ids = [rm.memory_id for rm in retrieved_memories]
-                self.memory_store.record_retrievals(memory_ids, result.success)
+                self.memory_store.record_references(memory_ids, result.success)
 
             # Extract and store memory if enabled (standard extraction)
             if self.config.memory.should_extract():
@@ -798,17 +799,17 @@ class Evaluator:
             print(f"    Total memories:   {stats['total_memories']}")
             print(f"    Success memories: {stats['success_memories']}")
             print(f"    Failure memories: {stats['failure_memories']}")
-            # Retrieval statistics
-            if stats['total_retrievals'] > 0:
-                rate = stats['avg_retrieval_success_rate']
+            # Reference statistics
+            if stats['total_references'] > 0:
+                rate = stats['avg_reference_success_rate']
                 rate_color = (
                     Colors.BRIGHT_GREEN if rate >= 0.7
                     else Colors.BRIGHT_YELLOW if rate >= 0.5
                     else Colors.BRIGHT_RED
                 )
-                print(f"    Total retrievals: {stats['total_retrievals']}")
+                print(f"    Total references: {stats['total_references']}")
                 print(
-                    f"    Retrieval success rate: {rate_color}{rate:.2%}{Colors.RESET}"
+                    f"    Reference success rate: {rate_color}{rate:.2%}{Colors.RESET}"
                 )
 
         print()

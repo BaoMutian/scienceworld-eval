@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class MemoryStore:
     """Persistent storage for memories with embedding support.
-    
+
     Stores memories in JSONL format and embeddings in numpy format.
     Supports incremental addition of new memories.
     """
@@ -27,7 +27,7 @@ class MemoryStore:
         embedding_model: Optional[EmbeddingModel] = None,
     ):
         """Initialize memory store.
-        
+
         Args:
             memory_dir: Directory to store memory files.
             task_name: Name of the task (used in file naming).
@@ -68,7 +68,8 @@ class MemoryStore:
                             memory = Memory.from_dict(data)
                             self._memories.append(memory)
                             self._memory_id_to_idx[memory.memory_id] = idx
-                logger.info(f"Loaded {len(self._memories)} memories from {self.memories_path}")
+                logger.info(
+                    f"Loaded {len(self._memories)} memories from {self.memories_path}")
             except Exception as e:
                 logger.error(f"Failed to load memories: {e}")
                 self._memories = []
@@ -85,7 +86,8 @@ class MemoryStore:
                     )
                     self._recompute_embeddings()
                 else:
-                    logger.info(f"Loaded embeddings from {self.embeddings_path}")
+                    logger.info(
+                        f"Loaded embeddings from {self.embeddings_path}")
             except Exception as e:
                 logger.error(f"Failed to load embeddings: {e}")
                 self._embeddings = None
@@ -103,7 +105,8 @@ class MemoryStore:
             queries = [m.query for m in self._memories]
             self._embeddings = self.embedding_model.encode(queries)
             self._save_embeddings()
-            logger.info(f"Recomputed embeddings for {len(self._memories)} memories")
+            logger.info(
+                f"Recomputed embeddings for {len(self._memories)} memories")
         except Exception as e:
             logger.error(f"Failed to recompute embeddings: {e}")
             self._embeddings = None
@@ -127,15 +130,16 @@ class MemoryStore:
 
     def add(self, memory: Memory) -> bool:
         """Add a new memory to the store.
-        
+
         Args:
             memory: Memory to add.
-            
+
         Returns:
             True if successfully added, False otherwise.
         """
         if memory.memory_id in self._memory_id_to_idx:
-            logger.warning(f"Memory {memory.memory_id} already exists, skipping")
+            logger.warning(
+                f"Memory {memory.memory_id} already exists, skipping")
             return False
 
         try:
@@ -149,11 +153,13 @@ class MemoryStore:
 
             # Update embeddings
             if self.embedding_model:
-                new_embedding = self.embedding_model.encode_single(memory.query)
+                new_embedding = self.embedding_model.encode_single(
+                    memory.query)
                 if self._embeddings is None:
                     self._embeddings = new_embedding.reshape(1, -1)
                 else:
-                    self._embeddings = np.vstack([self._embeddings, new_embedding])
+                    self._embeddings = np.vstack(
+                        [self._embeddings, new_embedding])
                 self._save_embeddings()
 
             logger.debug(f"Added memory {memory.memory_id}")
@@ -169,10 +175,10 @@ class MemoryStore:
 
     def get(self, memory_id: str) -> Optional[Memory]:
         """Get a memory by ID.
-        
+
         Args:
             memory_id: ID of the memory to retrieve.
-            
+
         Returns:
             Memory if found, None otherwise.
         """
@@ -183,7 +189,7 @@ class MemoryStore:
 
     def get_all(self) -> List[Memory]:
         """Get all memories.
-        
+
         Returns:
             List of all memories.
         """
@@ -191,7 +197,7 @@ class MemoryStore:
 
     def get_embeddings(self) -> Optional[np.ndarray]:
         """Get all embeddings.
-        
+
         Returns:
             Numpy array of embeddings or None if not available.
         """
@@ -199,7 +205,7 @@ class MemoryStore:
 
     def get_memories_and_embeddings(self) -> Tuple[List[Memory], Optional[np.ndarray]]:
         """Get all memories and their embeddings.
-        
+
         Returns:
             Tuple of (memories list, embeddings array).
         """
@@ -207,7 +213,7 @@ class MemoryStore:
 
     def size(self) -> int:
         """Get the number of memories in the store.
-        
+
         Returns:
             Number of memories.
         """
@@ -215,7 +221,7 @@ class MemoryStore:
 
     def is_empty(self) -> bool:
         """Check if the store is empty.
-        
+
         Returns:
             True if empty, False otherwise.
         """
@@ -223,7 +229,7 @@ class MemoryStore:
 
     def has_embeddings(self) -> bool:
         """Check if embeddings are available.
-        
+
         Returns:
             True if embeddings are available, False otherwise.
         """
@@ -243,30 +249,30 @@ class MemoryStore:
 
         logger.info("Cleared all memories")
 
-    def record_retrievals(
+    def record_references(
         self,
         memory_ids: List[str],
         task_success: bool,
     ) -> None:
-        """Record retrieval events for memories.
+        """Record reference events for memories.
 
-        Updates the retrieval statistics for each memory and saves to disk.
+        Updates the reference statistics for each memory and saves to disk.
 
         Args:
-            memory_ids: List of memory IDs that were retrieved.
+            memory_ids: List of memory IDs that were referenced.
             task_success: Whether the task succeeded after using these memories.
         """
         updated = False
         for memory_id in memory_ids:
             memory = self.get(memory_id)
             if memory:
-                memory.record_retrieval(task_success)
+                memory.record_reference(task_success)
                 updated = True
                 logger.debug(
-                    f"Recorded retrieval for {memory_id}: "
+                    f"Recorded reference for {memory_id}: "
                     f"success={task_success}, "
-                    f"total={memory.retrieval_count}, "
-                    f"rate={memory.retrieval_success_rate:.2%}"
+                    f"total={memory.reference_count}, "
+                    f"rate={memory.reference_success_rate:.2%}"
                 )
 
         # Save updated memories to disk
@@ -278,8 +284,10 @@ class MemoryStore:
         try:
             with open(self.memories_path, "w", encoding="utf-8") as f:
                 for memory in self._memories:
-                    f.write(json.dumps(memory.to_dict(), ensure_ascii=False) + "\n")
-            logger.debug(f"Saved {len(self._memories)} memories to {self.memories_path}")
+                    f.write(json.dumps(memory.to_dict(),
+                            ensure_ascii=False) + "\n")
+            logger.debug(
+                f"Saved {len(self._memories)} memories to {self.memories_path}")
         except Exception as e:
             logger.error(f"Failed to save memories: {e}")
 
@@ -296,12 +304,13 @@ class MemoryStore:
         for m in self._memories:
             task_types[m.task_type] = task_types.get(m.task_type, 0) + 1
 
-        # Retrieval statistics
-        total_retrievals = sum(m.retrieval_count for m in self._memories)
-        total_retrieval_successes = sum(m.retrieval_success_count for m in self._memories)
-        avg_retrieval_success_rate = (
-            total_retrieval_successes / total_retrievals
-            if total_retrievals > 0 else 0.0
+        # Reference statistics
+        total_references = sum(m.reference_count for m in self._memories)
+        total_reference_successes = sum(
+            m.reference_success_count for m in self._memories)
+        avg_reference_success_rate = (
+            total_reference_successes / total_references
+            if total_references > 0 else 0.0
         )
 
         return {
@@ -313,9 +322,8 @@ class MemoryStore:
             "task_types": task_types,
             "memories_path": str(self.memories_path),
             "embeddings_path": str(self.embeddings_path),
-            # Retrieval statistics
-            "total_retrievals": total_retrievals,
-            "total_retrieval_successes": total_retrieval_successes,
-            "avg_retrieval_success_rate": avg_retrieval_success_rate,
+            # Reference statistics
+            "total_references": total_references,
+            "total_reference_successes": total_reference_successes,
+            "avg_reference_success_rate": avg_reference_success_rate,
         }
-

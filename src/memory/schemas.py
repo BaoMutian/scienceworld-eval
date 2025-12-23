@@ -50,30 +50,30 @@ class Memory:
     is_success: bool
     memory_items: List[MemoryEntry] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    # Retrieval statistics
-    retrieval_count: int = 0  # Total times this memory was retrieved
-    retrieval_success_count: int = 0  # Times task succeeded after retrieval
+    # Reference statistics (how often this memory is used and its effectiveness)
+    reference_count: int = 0  # Total times this memory was referenced
+    reference_success_count: int = 0  # Times task succeeded after referencing
 
     @property
-    def retrieval_success_rate(self) -> float:
-        """Calculate success rate when this memory is retrieved.
+    def reference_success_rate(self) -> float:
+        """Calculate success rate when this memory is referenced.
 
         Returns:
-            Success rate (0.0-1.0), or 0.0 if never retrieved.
+            Success rate (0.0-1.0), or 0.0 if never referenced.
         """
-        if self.retrieval_count == 0:
+        if self.reference_count == 0:
             return 0.0
-        return self.retrieval_success_count / self.retrieval_count
+        return self.reference_success_count / self.reference_count
 
-    def record_retrieval(self, task_success: bool) -> None:
-        """Record a retrieval event for this memory.
+    def record_reference(self, task_success: bool) -> None:
+        """Record a reference event for this memory.
 
         Args:
             task_success: Whether the task succeeded after using this memory.
         """
-        self.retrieval_count += 1
+        self.reference_count += 1
         if task_success:
-            self.retrieval_success_count += 1
+            self.reference_success_count += 1
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -86,8 +86,8 @@ class Memory:
             "is_success": self.is_success,
             "memory_items": [item.to_dict() for item in self.memory_items],
             "created_at": self.created_at,
-            "retrieval_count": self.retrieval_count,
-            "retrieval_success_count": self.retrieval_success_count,
+            "reference_count": self.reference_count,
+            "reference_success_count": self.reference_success_count,
         }
 
     @classmethod
@@ -106,8 +106,8 @@ class Memory:
             is_success=data.get("is_success", False),
             memory_items=memory_items,
             created_at=data.get("created_at", datetime.now().isoformat()),
-            retrieval_count=data.get("retrieval_count", 0),
-            retrieval_success_count=data.get("retrieval_success_count", 0),
+            reference_count=data.get("reference_count", 0),
+            reference_success_count=data.get("reference_success_count", 0),
         )
 
     @staticmethod
