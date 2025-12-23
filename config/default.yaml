@@ -23,7 +23,7 @@ test:
   task_ids: ["1-1"] # null = all tasks, or list like ["1-1", "4-1", "4-2"]
   split: "dev" # train/dev/test
   seed: 42
-  max_steps: 5 # Maximum steps per episode
+  max_steps: 2 # Maximum steps per episode
   simplifications: "easy" # easy, or comma-separated: "teleportAction,openDoors"
 
 # Prompt Configuration
@@ -35,7 +35,7 @@ prompt:
 runtime:
   save_interval: 1 # Save checkpoint every N episodes
   output_dir: "results"
-  debug: true
+  debug: false
 
 # Memory Configuration (ReasoningBank)
 memory:

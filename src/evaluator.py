@@ -264,9 +264,14 @@ class Evaluator:
                 for rm in retrieved:
                     result_tag = Colors.success(
                         "✓") if rm.is_success else Colors.warning("✗")
+                    # Show reference count and success rate
+                    ref_info = f"refs={rm.reference_count}"
+                    if rm.reference_count > 0:
+                        ref_info += f" sr={rm.reference_success_rate:.0%}"
                     tqdm.write(
                         f"  {Colors.info('📚 Memory:')} {result_tag} "
-                        f"sim={rm.similarity:.2f} | {rm.memory_items[0].title if rm.memory_items else 'No title'}"
+                        f"sim={rm.similarity:.2f} {ref_info} | "
+                        f"{rm.memory_items[0].title if rm.memory_items else 'No title'}"
                     )
 
             if self.config.runtime.debug and retrieved:

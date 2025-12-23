@@ -145,6 +145,18 @@ class RetrievedMemory:
     def memory_items(self) -> List[MemoryEntry]:
         return self.memory.memory_items
 
+    @property
+    def reference_count(self) -> int:
+        return self.memory.reference_count
+
+    @property
+    def reference_success_count(self) -> int:
+        return self.memory.reference_success_count
+
+    @property
+    def reference_success_rate(self) -> float:
+        return self.memory.reference_success_rate
+
     def get_summary(self) -> Dict[str, Any]:
         """Get summary for logging/results."""
         return {

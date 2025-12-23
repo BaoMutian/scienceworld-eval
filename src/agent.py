@@ -181,9 +181,13 @@ class ReActAgent:
                 for rm in self.retrieved_memories:
                     status = Colors.success(
                         '✓') if rm.is_success else Colors.warning('✗')
+                    # Show reference count and success rate
+                    ref_info = f"refs={rm.reference_count}"
+                    if rm.reference_count > 0:
+                        ref_info += f" sr={rm.reference_success_rate:.0%}"
                     titles = [item.title for item in rm.memory_items[:2]]
                     print(
-                        f"  {status} sim={rm.similarity:.2f} | {', '.join(titles)}")
+                        f"  {status} sim={rm.similarity:.2f} {ref_info} | {', '.join(titles)}")
             print(f"{Colors.highlight('-'*50)}")
 
         try:
