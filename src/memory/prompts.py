@@ -112,7 +112,7 @@ Output ONLY the JSON array, no additional text."""
 # System prompt for MaTTS contrastive extraction
 MATTS_SYSTEM_PROMPT = """You are an expert in science experiment execution and reasoning analysis.
 
-You will be given a user query (task goal) and multiple trajectories showing how an agent attempted the task. 
+You will be given a task goal and multiple trajectories showing how an agent attempted the task. 
 Some trajectories may be successful, and others may have failed.
 
 ## Guidelines
@@ -145,51 +145,22 @@ Your output must strictly follow this JSON format:
 
 Output ONLY the JSON array, no additional text."""
 
-# User prompt template for MaTTS
-MATTS_USER_PROMPT_TEMPLATE = """## Environment Background
+# User prompt template for MaTTS contrastive extraction
+MATTS_USER_PROMPT_TEMPLATE = """{environment_context}
 
-ScienceWorld is a text-based interactive environment for testing scientific reasoning abilities.
-The agent navigates rooms, manipulates objects, and performs science experiments through text commands.
-
-### Key Environment Features:
-- **Navigation**: Rooms connected by doors/portals (kitchen, living room, outside, greenhouse, workshop, etc.)
-- **Objects**: Various containers (cups, pots, jars), substances (water, ice, salt), tools, and living things
-- **State Changes**: Objects can change state (solid/liquid/gas), temperature, location
-- **Scientific Tasks**: Include melting, boiling, freezing, mixing, growing plants, electrical circuits, etc.
-
-### Available Action Types:
-- Movement: go to [location], teleport to [location]
-- Observation: look around, look at [object], look in [container]
-- Manipulation: pick up [object], put [object] in [container], open/close [container]
-- Interaction: activate/deactivate [device], use [tool] on [object], pour [liquid] into [container]
-- Task-specific: focus on [object], mix [container], wait/wait1
-- Special: connect [component] to [component], disconnect [component]
-
-### Common Challenges:
-- Finding target objects requires systematic room exploration
-- Temperature changes require appropriate heat/cold sources
-- Many tasks require specific sequences (e.g., focus -> action -> wait)
-- Time-dependent processes need proper wait commands
-
----
-
-## Task Goal
-{goal}
-
-## Task Type
-{task_type}
-
----
+## Task Context
+- **Task Type:** {task_type}
+- **Task Goal:** {goal}
+- **Total Attempts:** {num_trajectories}
+- **Success/Fail:** {success_summary}
 
 ## Trajectories
+
 {trajectories}
 
 ---
 
-Based on the above trajectories, extract reusable strategies and lessons. Focus on what made successful attempts work and what caused failures."""
-
-# Legacy prompt kept for backward compatibility
-EXTRACTION_PROMPT_CONTRASTIVE = MATTS_USER_PROMPT_TEMPLATE
+Based on the above trajectories for the same task, analyze the differences and similarities, then extract high-quality memory items."""
 
 
 def format_trajectory(trajectory: List[Dict[str, str]]) -> str:
@@ -344,9 +315,18 @@ def build_contrastive_extraction_prompt(
     """
     formatted_trajectories = format_multiple_trajectories(trajectories)
 
+    # Calculate success summary
+    num_trajectories = len(trajectories)
+    success_count = sum(1 for t in trajectories if t.get("is_success", False))
+    fail_count = num_trajectories - success_count
+    success_summary = f"{success_count} Success, {fail_count} Failed"
+
     return MATTS_USER_PROMPT_TEMPLATE.format(
+        environment_context=ENVIRONMENT_CONTEXT,
         task_type=task_type,
         goal=goal,
+        num_trajectories=num_trajectories,
+        success_summary=success_summary,
         trajectories=formatted_trajectories,
     )
 
