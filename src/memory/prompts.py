@@ -229,7 +229,7 @@ def format_trajectory_full(
         Formatted trajectory string with full details.
     """
     lines = []
-    
+
     # Include initial observation if provided
     if initial_observation:
         lines.append("Initial Observation:")
@@ -239,12 +239,12 @@ def format_trajectory_full(
         else:
             lines.append(f"  {initial_observation}")
         lines.append("")
-    
+
     # Format each step with full details
     for i, step in enumerate(trajectory, 1):
         action = step.get("action", "")
         observation = step.get("observation", "")
-        
+
         lines.append(f"Step {i}:")
         lines.append(f"  Action: {action}")
         # Keep observations reasonably sized for context
@@ -253,7 +253,7 @@ def format_trajectory_full(
         else:
             lines.append(f"  Observation: {observation}")
         lines.append("")
-    
+
     return "\n".join(lines)
 
 
@@ -275,13 +275,13 @@ def format_multiple_trajectories(
         Formatted string with all trajectories and their context.
     """
     lines = []
-    
+
     for i, traj_data in enumerate(trajectories, 1):
         is_success = traj_data.get("is_success", False)
         score = traj_data.get("score", 0)
         steps = traj_data.get("steps", len(traj_data.get("trajectory", [])))
         result = "SUCCESS" if is_success else "FAILED"
-        
+
         # Header with trajectory metadata
         lines.append(f"{'='*60}")
         lines.append(f"### Trajectory {i}: {result}")
@@ -289,13 +289,13 @@ def format_multiple_trajectories(
         lines.append(f"- Total Steps: {steps}")
         lines.append(f"{'='*60}")
         lines.append("")
-        
+
         # Format the full trajectory
         initial_obs = traj_data.get("initial_observation", "")
         trajectory = traj_data.get("trajectory", [])
         lines.append(format_trajectory_full(trajectory, initial_obs))
         lines.append("")
-    
+
     return "\n".join(lines)
 
 
@@ -353,7 +353,7 @@ def build_contrastive_extraction_prompt(
 
 def get_matts_system_prompt() -> str:
     """Get the system prompt for MaTTS contrastive extraction.
-    
+
     Returns:
         System prompt string.
     """

@@ -73,7 +73,7 @@ class LLMClient:
             # Determine enable_thinking (use override if provided, else config)
             # A value of None means "not set", so we need to handle sentinel
             effective_thinking = enable_thinking if enable_thinking is not None else self.config.enable_thinking
-            
+
             # Add Qwen3 thinking mode if configured (for vLLM deployment)
             if effective_thinking is not None:
                 params["extra_body"] = {
