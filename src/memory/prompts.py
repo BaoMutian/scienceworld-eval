@@ -109,43 +109,87 @@ Return a JSON array of lesson objects:
 
 Output ONLY the JSON array, no additional text."""
 
-# Prompt for contrastive extraction (MaTTS)
-EXTRACTION_PROMPT_CONTRASTIVE = """You are an expert at analyzing multiple science experiment trajectories and extracting consistent patterns.
+# System prompt for MaTTS contrastive extraction
+MATTS_SYSTEM_PROMPT = """You are an expert in science experiment execution and reasoning analysis.
 
-{environment_context}
-## Task Context
-- Task Type: {task_type}
-- Task Goal: {goal}
-- Number of Trajectories: {num_trajectories}
+You will be given a user query (task goal) and multiple trajectories showing how an agent attempted the task. 
+Some trajectories may be successful, and others may have failed.
 
-## Trajectories
-{trajectories}
+## Guidelines
 
-## Instructions
-Compare these {num_trajectories} trajectories for the SAME task and extract insights:
-1. If some succeeded and some failed, identify what distinguishes successful from failed attempts
-2. If all succeeded, identify consistent winning strategies
-3. If all failed, identify common pitfalls to avoid
+Your goal is to compare and contrast these trajectories to identify the most useful and generalizable strategies as memory items.
 
-Extract 1-3 high-quality strategies/lessons that:
-- Are consistent across multiple attempts (not coincidental)
-- Represent general scientific reasoning patterns
-- Include specific action sequences or commands that work/fail
-- Could help with similar future tasks
+Use self-contrast reasoning:
+- Identify patterns and strategies that consistently led to success.
+- Identify mistakes or inefficiencies from failed trajectories and formulate preventative strategies.
+- Prefer strategies that generalize beyond specific objects or exact wording.
+
+## Important notes
+- Think first: Why did some trajectories succeed while others failed?
+- You can extract at most 5 memory items from all trajectories combined.
+- Do not repeat similar or overlapping items.
+- Do not mention specific object names or exact room layouts — focus on generalizable behaviors and reasoning patterns.
+- Make sure each memory item captures actionable and transferable insights.
 
 ## Output Format
-Return a JSON array:
+Your output must strictly follow this JSON format:
 ```json
 [
-  {{
-    "title": "Strategy/Lesson Name",
-    "description": "One-sentence summary",
-    "content": "Detailed explanation derived from comparing multiple trajectories, with specific actionable advice"
-  }}
+  {
+    "title": "<the title of the memory item>",
+    "description": "<one sentence summary of the memory item>",
+    "content": "<1-5 sentences describing the insights learned to successfully accomplish the task>"
+  }
 ]
 ```
 
 Output ONLY the JSON array, no additional text."""
+
+# User prompt template for MaTTS
+MATTS_USER_PROMPT_TEMPLATE = """## Environment Background
+
+ScienceWorld is a text-based interactive environment for testing scientific reasoning abilities.
+The agent navigates rooms, manipulates objects, and performs science experiments through text commands.
+
+### Key Environment Features:
+- **Navigation**: Rooms connected by doors/portals (kitchen, living room, outside, greenhouse, workshop, etc.)
+- **Objects**: Various containers (cups, pots, jars), substances (water, ice, salt), tools, and living things
+- **State Changes**: Objects can change state (solid/liquid/gas), temperature, location
+- **Scientific Tasks**: Include melting, boiling, freezing, mixing, growing plants, electrical circuits, etc.
+
+### Available Action Types:
+- Movement: go to [location], teleport to [location]
+- Observation: look around, look at [object], look in [container]
+- Manipulation: pick up [object], put [object] in [container], open/close [container]
+- Interaction: activate/deactivate [device], use [tool] on [object], pour [liquid] into [container]
+- Task-specific: focus on [object], mix [container], wait/wait1
+- Special: connect [component] to [component], disconnect [component]
+
+### Common Challenges:
+- Finding target objects requires systematic room exploration
+- Temperature changes require appropriate heat/cold sources
+- Many tasks require specific sequences (e.g., focus -> action -> wait)
+- Time-dependent processes need proper wait commands
+
+---
+
+## Task Goal
+{goal}
+
+## Task Type
+{task_type}
+
+---
+
+## Trajectories
+{trajectories}
+
+---
+
+Based on the above trajectories, extract reusable strategies and lessons. Focus on what made successful attempts work and what caused failures."""
+
+# Legacy prompt kept for backward compatibility
+EXTRACTION_PROMPT_CONTRASTIVE = MATTS_USER_PROMPT_TEMPLATE
 
 
 def format_trajectory(trajectory: List[Dict[str, str]]) -> str:
@@ -171,23 +215,87 @@ def format_trajectory(trajectory: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+def format_trajectory_full(
+    trajectory: List[Dict[str, str]],
+    initial_observation: str = "",
+) -> str:
+    """Format trajectory with complete information for MaTTS.
+
+    Args:
+        trajectory: List of action-observation pairs.
+        initial_observation: Initial environment observation.
+
+    Returns:
+        Formatted trajectory string with full details.
+    """
+    lines = []
+    
+    # Include initial observation if provided
+    if initial_observation:
+        lines.append("Initial Observation:")
+        # Truncate very long initial observations
+        if len(initial_observation) > 800:
+            lines.append(f"  {initial_observation[:800]}...")
+        else:
+            lines.append(f"  {initial_observation}")
+        lines.append("")
+    
+    # Format each step with full details
+    for i, step in enumerate(trajectory, 1):
+        action = step.get("action", "")
+        observation = step.get("observation", "")
+        
+        lines.append(f"Step {i}:")
+        lines.append(f"  Action: {action}")
+        # Keep observations reasonably sized for context
+        if len(observation) > 600:
+            lines.append(f"  Observation: {observation[:600]}...")
+        else:
+            lines.append(f"  Observation: {observation}")
+        lines.append("")
+    
+    return "\n".join(lines)
+
+
 def format_multiple_trajectories(
     trajectories: List[Dict],
 ) -> str:
     """Format multiple trajectories for contrastive extraction.
 
     Args:
-        trajectories: List of trajectory dicts with 'trajectory' and 'is_success' keys.
+        trajectories: List of trajectory dicts with keys:
+            - 'trajectory': List of action-observation pairs
+            - 'is_success': Whether this attempt succeeded
+            - 'score': Final score (0-100)
+            - 'steps': Number of steps taken
+            - 'initial_observation': (optional) Initial environment state
+            - 'goal': (optional) Task goal
 
     Returns:
-        Formatted string with all trajectories.
+        Formatted string with all trajectories and their context.
     """
     lines = []
+    
     for i, traj_data in enumerate(trajectories, 1):
-        result = "SUCCESS" if traj_data.get("is_success", False) else "FAILED"
-        lines.append(f"=== Trajectory {i} ({result}) ===")
-        lines.append(format_trajectory(traj_data.get("trajectory", [])))
+        is_success = traj_data.get("is_success", False)
+        score = traj_data.get("score", 0)
+        steps = traj_data.get("steps", len(traj_data.get("trajectory", [])))
+        result = "SUCCESS" if is_success else "FAILED"
+        
+        # Header with trajectory metadata
+        lines.append(f"{'='*60}")
+        lines.append(f"### Trajectory {i}: {result}")
+        lines.append(f"- Final Score: {score}")
+        lines.append(f"- Total Steps: {steps}")
+        lines.append(f"{'='*60}")
         lines.append("")
+        
+        # Format the full trajectory
+        initial_obs = traj_data.get("initial_observation", "")
+        trajectory = traj_data.get("trajectory", [])
+        lines.append(format_trajectory_full(trajectory, initial_obs))
+        lines.append("")
+    
     return "\n".join(lines)
 
 
@@ -229,17 +337,24 @@ def build_contrastive_extraction_prompt(
     Args:
         task_type: Type of the task (task_name).
         goal: Task goal description.
-        trajectories: List of trajectory dicts.
+        trajectories: List of trajectory dicts with full context.
 
     Returns:
-        Formatted prompt string.
+        Formatted user prompt string.
     """
     formatted_trajectories = format_multiple_trajectories(trajectories)
 
-    return EXTRACTION_PROMPT_CONTRASTIVE.format(
-        environment_context=ENVIRONMENT_CONTEXT,
+    return MATTS_USER_PROMPT_TEMPLATE.format(
         task_type=task_type,
         goal=goal,
-        num_trajectories=len(trajectories),
         trajectories=formatted_trajectories,
     )
+
+
+def get_matts_system_prompt() -> str:
+    """Get the system prompt for MaTTS contrastive extraction.
+    
+    Returns:
+        System prompt string.
+    """
+    return MATTS_SYSTEM_PROMPT

@@ -335,8 +335,191 @@ class Evaluator:
                 f"Memory extraction failed for {result.episode_id}: {e}")
             # Don't propagate - extraction failure shouldn't stop evaluation
 
+    def _build_trajectory_data(self, result: EpisodeResult) -> Dict[str, Any]:
+        """Build complete trajectory data from episode result for MaTTS.
+
+        Args:
+            result: Episode result to extract trajectory from.
+
+        Returns:
+            Dictionary with full trajectory context.
+        """
+        # Build trajectory from result
+        trajectory = []
+        for i, action in enumerate(result.actions):
+            obs = result.observations[i + 1] if i + 1 < len(result.observations) else ""
+            trajectory.append({
+                "action": action,
+                "observation": obs,
+            })
+
+        # Get initial observation (first observation before any action)
+        initial_obs = result.observations[0] if result.observations else ""
+
+        return {
+            "trajectory": trajectory,
+            "is_success": result.success,
+            "score": result.score,
+            "steps": result.steps,
+            "initial_observation": initial_obs,
+            "goal": result.goal,
+            "episode_id": result.episode_id,
+        }
+
+    def _run_matts_episode(
+        self,
+        task_info: Dict[str, Any],
+        sample_idx: int,
+    ) -> EpisodeResult:
+        """Run a single MaTTS sample episode with higher temperature.
+
+        Args:
+            task_info: Task information dict.
+            sample_idx: Sample index for identification.
+
+        Returns:
+            Episode result.
+        """
+        task_name = task_info["task_name"]
+        variation = task_info["variation"]
+
+        env = None
+        try:
+            # Create environment
+            env = ScienceWorldEnv(self.config.test.simplifications)
+            obs, info = env.reset(task_name, variation)
+            goal = extract_task_description(obs, info.get("taskDesc", ""))
+
+            # Retrieve memories (if any exist already)
+            retrieved_memories = self._retrieve_memories(task_name, goal) if goal else []
+
+            # Create agent with higher temperature for diverse sampling
+            from .agent import ReActAgent
+
+            agent = ReActAgent(
+                llm_client=self.llm_client,
+                use_few_shot=self.config.prompt.use_few_shot,
+                history_length=self.config.prompt.history_length,
+                debug=self.config.runtime.debug,
+                retrieved_memories=retrieved_memories,
+                task_name=task_name,
+            )
+
+            # Run episode
+            result = agent.run_episode(
+                env, obs, info,
+                max_steps=self.config.test.max_steps,
+                episode_num=sample_idx,
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"MaTTS sample {sample_idx} failed for {task_info['task_id']}: {e}")
+            from .agent import EpisodeResult as ER
+            return ER(
+                episode_id=f"{task_info['task_id']}_v{variation}_s{sample_idx}",
+                task_id=task_info["task_id"],
+                task_name=task_name,
+                variation=variation,
+                success=False,
+                score=0,
+                steps=0,
+                goal="",
+                error=str(e),
+            )
+        finally:
+            if env:
+                env.close()
+
+    def _run_matts_contrastive(self, task_info: Dict[str, Any]) -> Optional[EpisodeResult]:
+        """Run MaTTS contrastive extraction for a task.
+
+        Runs multiple samples and extracts high-quality memory through comparison.
+
+        Args:
+            task_info: Task information dict.
+
+        Returns:
+            Best episode result, or None if failed.
+        """
+        task_id = task_info["task_id"]
+        task_name = task_info["task_name"]
+        variation = task_info["variation"]
+        sample_n = self.config.memory.matts.sample_n
+
+        print(f"\n{Colors.highlight('='*50)}")
+        print(f"{Colors.info('MaTTS Contrastive Extraction')}")
+        print(f"  Task: {task_id} ({task_name}) v{variation}")
+        print(f"  Samples: {sample_n}")
+        print(f"{Colors.highlight('='*50)}")
+
+        # Collect multiple trajectory samples
+        trajectories_data: List[Dict[str, Any]] = []
+        results: List[EpisodeResult] = []
+
+        for sample_idx in range(sample_n):
+            print(f"\n{Colors.dim(f'--- Sample {sample_idx + 1}/{sample_n} ---')}")
+
+            result = self._run_matts_episode(task_info, sample_idx)
+            results.append(result)
+
+            # Build trajectory data with full context
+            traj_data = self._build_trajectory_data(result)
+            trajectories_data.append(traj_data)
+
+            # Display sample result
+            status = Colors.success("✓ SUCCESS") if result.success else Colors.error("✗ FAILED")
+            print(f"  Result: {status} | Score: {result.score} | Steps: {result.steps}")
+
+        # Summarize samples
+        success_count = sum(1 for r in results if r.success)
+        print(f"\n{Colors.info('Sample Summary:')}")
+        print(f"  Success: {Colors.success(str(success_count))}/{sample_n}")
+        print(f"  Avg Score: {sum(r.score for r in results) / len(results):.1f}")
+
+        # Run contrastive extraction
+        if self.memory_extractor and self.memory_store and trajectories_data:
+            print(f"\n{Colors.info('Running contrastive extraction...')}")
+
+            # Get goal from first result
+            goal = results[0].goal if results else ""
+
+            # Use MaTTS-specific temperature and thinking mode
+            memory = self.memory_extractor.extract_contrastive(
+                task_id=f"{task_id}_v{variation}_matts",
+                task_type=task_name,
+                goal=goal,
+                trajectories=trajectories_data,
+                enable_thinking=self.config.memory.matts.enable_thinking,
+            )
+
+            if memory:
+                self.memory_store.add(memory)
+                print(f"  {Colors.success('✓ Extracted')} {len(memory.memory_items)} high-quality items:")
+                for item in memory.memory_items:
+                    print(f"    • {Colors.info(item.title)}")
+                    print(f"      {Colors.dim(item.description)}")
+            else:
+                print(f"  {Colors.warning('⚠ No memory items extracted')}")
+
+        print(f"{Colors.highlight('='*50)}\n")
+
+        # Return the best result (highest score, prefer success)
+        best_result = max(results, key=lambda r: (r.success, r.score))
+        return best_result
+
     def _run_episode(self, task_info: Dict[str, Any]) -> EpisodeResult:
-        """Run a single episode with optional memory support."""
+        """Run a single episode with optional memory support.
+        
+        If MaTTS is enabled, runs multiple samples and does contrastive extraction.
+        Otherwise, runs a single episode with standard extraction.
+        """
+        # Check if MaTTS should be used
+        if self.config.memory.should_use_matts():
+            return self._run_matts_contrastive(task_info)
+
+        # Standard single episode
         task_name = task_info["task_name"]
         variation = task_info["variation"]
         episode = task_info["episode"]
@@ -370,7 +553,7 @@ class Evaluator:
                 episode_num=episode
             )
 
-            # Extract and store memory if enabled
+            # Extract and store memory if enabled (standard extraction)
             if self.config.memory.should_extract():
                 self._extract_and_store_memory(result)
 
@@ -421,6 +604,17 @@ class Evaluator:
                     f"  Bank:     {Colors.info(str(stats['total_memories']))} memories")
             else:
                 print(f"  Bank:     {Colors.warning('Not initialized')}")
+            
+            # Print MaTTS info if enabled
+            if self.config.memory.should_use_matts():
+                matts = self.config.memory.matts
+                print(Colors.dim("-" * 40))
+                print(f"  {Colors.info('MaTTS Enabled:')}")
+                print(f"    Samples:     {matts.sample_n} per task")
+                print(f"    Temperature: {matts.temperature}")
+                if matts.enable_thinking is not None:
+                    thinking_str = Colors.success("ON") if matts.enable_thinking else Colors.dim("OFF")
+                    print(f"    Thinking:    {thinking_str}")
 
         print(Colors.highlight("=" * 60))
         print()

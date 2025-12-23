@@ -60,9 +60,11 @@ class RuntimeConfig:
 class MaTTSConfig:
     """MaTTS (Memory-aware Test-Time Scaling) configuration."""
     enabled: bool = False
-    sample_n: int = 3
-    temperature: float = 0.7
-    max_tokens: int = 1024
+    sample_n: int = 3  # Number of samples per task for contrastive extraction
+    temperature: float = 0.7  # Higher temperature for diverse sampling
+    max_tokens: int = 2048  # Longer responses for contrastive analysis
+    # Qwen3 thinking mode for MaTTS extraction (separate from main LLM config)
+    enable_thinking: Optional[bool] = None
 
 
 @dataclass
@@ -97,6 +99,10 @@ class MemoryConfig:
     def needs_memory_system(self) -> bool:
         """Check if memory system components need to be initialized."""
         return self.enabled and self.mode != "baseline"
+
+    def should_use_matts(self) -> bool:
+        """Check if MaTTS (contrastive extraction) should be used."""
+        return self.enabled and self.matts.enabled and self.mode == "retrieve_and_extract"
 
 
 @dataclass
@@ -251,6 +257,7 @@ class Config:
                     "sample_n": self.memory.matts.sample_n,
                     "temperature": self.memory.matts.temperature,
                     "max_tokens": self.memory.matts.max_tokens,
+                    "enable_thinking": self.memory.matts.enable_thinking,
                 },
             },
         }

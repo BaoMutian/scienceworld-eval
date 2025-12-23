@@ -8,6 +8,7 @@ from .schemas import Memory, MemoryEntry
 from .prompts import (
     build_extraction_prompt,
     build_contrastive_extraction_prompt,
+    get_matts_system_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -228,6 +229,7 @@ class MemoryExtractor:
         task_type: str,
         goal: str,
         trajectories: List[Dict],
+        enable_thinking: Optional[bool] = None,
     ) -> Optional[Memory]:
         """Extract memory from multiple trajectories using contrastive analysis.
 
@@ -238,7 +240,13 @@ class MemoryExtractor:
             task_id: Unique task identifier.
             task_type: Type of the task (task_name).
             goal: Task goal description.
-            trajectories: List of trajectory dicts with 'trajectory' and 'is_success'.
+            trajectories: List of trajectory dicts with full context:
+                - 'trajectory': List of action-observation pairs
+                - 'is_success': Whether this attempt succeeded
+                - 'score': Final score
+                - 'steps': Number of steps
+                - 'initial_observation': Initial environment state
+            enable_thinking: Optional Qwen3 thinking mode override.
 
         Returns:
             Memory object if extraction succeeds, None otherwise.
@@ -248,30 +256,38 @@ class MemoryExtractor:
                 f"No trajectories for contrastive extraction, task {task_id}")
             return None
 
+        # Summarize trajectories for logging
+        success_count = sum(1 for t in trajectories if t.get("is_success", False))
+        fail_count = len(trajectories) - success_count
+
         try:
-            # Build contrastive extraction prompt
-            system_prompt = "You are an expert at analyzing science experiment execution and extracting patterns from multiple attempts."
-            prompt = build_contrastive_extraction_prompt(
+            # Build contrastive extraction prompt with MaTTS-specific system prompt
+            system_prompt = get_matts_system_prompt()
+            user_prompt = build_contrastive_extraction_prompt(
                 task_type=task_type,
                 goal=goal,
                 trajectories=trajectories,
             )
 
-            # Call LLM
+            # Call LLM with optional thinking mode
             response = self.llm_client.chat_simple(
                 system_prompt=system_prompt,
-                user_prompt=prompt,
+                user_prompt=user_prompt,
+                enable_thinking=enable_thinking,
             )
 
             # Log extraction interaction for debug
             logger.debug("")
-            logger.debug(f">>> CONTRASTIVE MEMORY EXTRACTION: {task_id}")
+            logger.debug("=" * 70)
+            logger.debug(f">>> MaTTS CONTRASTIVE EXTRACTION: {task_id}")
+            logger.debug(f"    Trajectories: {len(trajectories)} ({success_count} success, {fail_count} failed)")
+            logger.debug("=" * 70)
             logger.debug("")
             logger.debug("[SYSTEM PROMPT]")
             logger.debug(system_prompt)
             logger.debug("")
             logger.debug("[USER PROMPT]")
-            logger.debug(prompt)
+            logger.debug(user_prompt)
             logger.debug("")
             logger.debug("[LLM RESPONSE]")
             logger.debug(response)
@@ -281,24 +297,24 @@ class MemoryExtractor:
 
             if items is None:
                 logger.debug("")
-                logger.debug(f"[RESULT] Failed to parse JSON from response")
+                logger.debug("[RESULT] Failed to parse JSON from response")
                 logger.warning(
-                    f"Failed to parse contrastive extraction response for task {task_id}")
+                    f"Failed to parse MaTTS extraction response for task {task_id}")
                 return None
 
             memory_items = _validate_memory_items(items)
 
             if not memory_items:
                 logger.debug("")
-                logger.debug(f"[RESULT] No valid memory items extracted")
+                logger.debug("[RESULT] No valid memory items extracted")
                 logger.warning(
-                    f"No valid memory items from contrastive extraction for task {task_id}")
+                    f"No valid memory items from MaTTS extraction for task {task_id}")
                 return None
 
             # Determine overall success (any success counts)
-            any_success = any(t.get("is_success", False) for t in trajectories)
+            any_success = success_count > 0
 
-            # Use the first trajectory as representative
+            # Combine all trajectories for storage (first one as representative)
             representative_trajectory = trajectories[0].get("trajectory", [])
 
             memory = Memory(
@@ -313,12 +329,14 @@ class MemoryExtractor:
 
             logger.debug("")
             logger.debug(
-                f"[RESULT] Extracted {len(memory_items)} items from {len(trajectories)} trajectories")
+                f"[RESULT] MaTTS extracted {len(memory_items)} items from {len(trajectories)} trajectories")
+            for item in memory_items:
+                logger.debug(f"  - {item.title}: {item.description}")
             logger.debug("")
 
             return memory
 
         except Exception as e:
             logger.error(
-                f"Contrastive extraction failed for task {task_id}: {e}")
+                f"MaTTS contrastive extraction failed for task {task_id}: {e}")
             return None

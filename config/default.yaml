@@ -55,8 +55,12 @@ memory:
   similarity_threshold: 0.5
 
   # MaTTS configuration (Memory-aware Test-Time Scaling)
+  # When enabled, runs multiple attempts on the same task and extracts
+  # high-quality insights by comparing successful and failed trajectories.
   matts:
     enabled: false
-    sample_n: 3
-    temperature: 0.7
-    max_tokens: 1024
+    sample_n: 3        # Number of attempts per task for contrastive extraction
+    temperature: 0.7   # Higher temperature for diverse sampling
+    max_tokens: 2048   # Longer responses for detailed contrastive analysis
+    # Qwen3 thinking mode for MaTTS extraction: true/false/null(not set)
+    enable_thinking: null
