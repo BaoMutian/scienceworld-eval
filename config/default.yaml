@@ -3,7 +3,7 @@
 # LLM Service Configuration
 llm:
   api_base_url: "https://openrouter.ai/api/v1"
-  api_key: "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" # Set via OPENROUTER_API_KEY or OPENAI_API_KEY env var
+  api_key: "" # Set via OPENROUTER_API_KEY or OPENAI_API_KEY env var
   model: "qwen/qwen-2.5-72b-instruct"
   temperature: 0.3
   max_tokens: 1024 # 0 means no limit
